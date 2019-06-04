@@ -123,10 +123,24 @@ func (inteltool *InteltoolData) PadMapFprint(gpio *os.File, raw bool) {
 	gpio.WriteString("};\n")
 
 	// FIXME: need to add early configuration
-	gpio.WriteString("\n/* Early pad configuration in romstage. */\n")
-	gpio.WriteString("static const struct pad_config early_gpio_table[] = {\n")
-	gpio.WriteString("\t/* TODO: Add early pad configuration */\n")
-	gpio.WriteString("};\n")
+	gpio.WriteString(`/* Early pad configuration in romstage. */
+static const struct pad_config early_gpio_table[] = {
+	/* TODO: Add early pad configuration */
+};
+
+const struct pad_config *get_gpio_table(size_t *num)
+{
+	*num = ARRAY_SIZE(gpio_table);
+	return gpio_table;
+}
+
+const struct pad_config *get_early_gpio_table(size_t *num)
+{
+	*num = ARRAY_SIZE(early_gpio_table);
+	return early_gpio_table;
+}
+
+`)
 }
 
 // Parse pads groupe information in the inteltool log file
@@ -197,6 +211,9 @@ func CreateHdrFile() (err error) {
 #define PCH_PAD_DW_CFG(val, config0, config1)  \
 		_PAD_CFG_STRUCT(val, config0, config1)
 
+const struct pad_config *get_gpio_table(size_t *num);
+const struct pad_config *get_early_gpio_table(size_t *num);
+
 #endif /* PCH_GPIO_H */
 `)
 	return nil
@@ -222,6 +239,7 @@ func CreateGpioFile(inteltool *InteltoolData, showRawDataFlag bool) (err error) 
 
 	HdrInfoAdd(gpio)
 	gpio.WriteString(`
+#include <commonlib/helpers.h>
 #include "include/gpio.h"
 `)
 	// Add the pads map to gpio.h file
