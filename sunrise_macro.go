@@ -175,12 +175,17 @@ func (macro *macro) addSuffixInput() {
 
 // Adds suffix to GPO macro with arguments
 func (macro *macro) addSuffixOutput() {
+	var term = macro.getData().getTermination()
 	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
-	if macro.getData().getTermination() != 0 {
+	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.add("_TERM")
 	}
-	macro.add("_GPO").add("(").id().val().rstsrc()
+	macro.add("_GPO").add("(").id().val()
+	if term != 0 {
+		macro.pull()
+	}
+	macro.rstsrc()
 }
 
 const (
