@@ -225,8 +225,8 @@ GPIO TX State (GPIOTXSTATE):
 0 = Drive a level '0' to the TX output pad.
 1 = Drive a level '1' to the TX output pad
 */
-func (data *configData) getGPIOTXState() bool {
-	return data.dw0&GPIOTXSTATE_MASK != 0
+func (data *configData) getGPIOTXState() int {
+	return int(data.dw0 & GPIOTXSTATE_MASK)
 }
 
 /*

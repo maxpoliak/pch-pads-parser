@@ -85,11 +85,7 @@ func (macro *macro) pull() *macro {
 // Adds Pad GPO value to macro string as a new argument
 // return: macro
 func (macro *macro) val() *macro {
-	var state int
-	if macro.getData().getGPIOTXState() {
-		state = 1
-	}
-	macro.add(", " + strconv.Itoa(state))
+	macro.add(", " + strconv.Itoa(macro.getData().getGPIOTXState()))
 	return macro
 }
 
