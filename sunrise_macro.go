@@ -93,7 +93,6 @@ func (macro *macro) val() *macro {
 	return macro
 }
 
-
 // Adds Pad GPO value to macro string as a new argument
 // return: macro
 func (macro *macro) trig() *macro {
@@ -178,6 +177,11 @@ func (macro *macro) addSuffixInput() {
 			macro.add("_ACPI")
 		}
 		macro.add("_SMI").add("(").id().pull().rstsrc().invert()
+
+	case isEdge != 0:
+		// e.g. ISH_SPI_CS#
+		// PAD_CFG_GPI_INT(GPP_D9, NONE, PLTRST, EDGE),
+		macro.add("_INT").add("(").id().pull().rstsrc().trig()
 
 	default:
 		// e.g. PAD_CFG_GPI(GPP_A7, NONE, DEEP),
