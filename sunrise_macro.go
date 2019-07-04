@@ -130,7 +130,7 @@ func (macro *macro) padfn() *macro {
 // Adds suffix to GPI macro with arguments
 func (macro *macro) addSuffixInput() {
 	var dw = macro.getData()
-	var isEdge = (dw.getRXLevelEdgeConfiguration() & 0x1 != 0)
+	var isEdge = dw.getRXLevelEdgeConfiguration()
 
 	macro.add("_GPI")
 	switch {
@@ -141,27 +141,39 @@ func (macro *macro) addSuffixInput() {
 	case dw.getGPIOInputRouteIOxAPIC():
 		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
 		macro.add("_APIC")
-		if dw.getRXLevelConfiguration() {
-			// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
-			macro.add("_INVERT")
+		if isEdge == 0 {
+			if dw.getRXLevelConfiguration() {
+				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
+				macro.add("_INVERT")
+			}
+			macro.add("(").id().pull().rstsrc()
+		} else {
+			// PAD_CFG_GPI_APIC_IOS(GPP_C20, NONE, DEEP, LEVEL, INVERT,
+			// TxDRxE, DISPUPD) macro isn't used for this chipset. But, in
+			// the case when SOC_INTEL_COMMON_BLOCK_GPIO_LEGACY_MACROS is
+			// defined in the config, this macro allows you to set trig and
+			// invert parameters.
+			macro.add("_IOS").add("(").id().pull().rstsrc().trig().invert()
+			// IOStandby Config will be ignored for the Sunrise PCH, so use
+			// any values
+			macro.add(", TxDRxE, DISPUPD")
 		}
-		macro.add("(").id().pull().rstsrc()
 
 	case dw.getGPIOInputRouteSCI():
 
 		// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
-		if isEdge {
+		if isEdge & 0x1 != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
 		macro.add("_SCI").add("(").id().pull().rstsrc()
-		if !isEdge {
+		if isEdge & 0x1 == 0 {
 			macro.trig()
 		}
 		macro.invert()
 
 	case dw.getGPIOInputRouteSMI():
-		if isEdge {
+		if isEdge & 0x1 != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
