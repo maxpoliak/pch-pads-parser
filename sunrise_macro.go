@@ -114,6 +114,19 @@ func (macro *macro) invert() *macro {
 	return macro
 }
 
+// Adds input/output buffer state
+// return: macro
+func (macro *macro) bufdis() *macro {
+	var buffDisStat = map[uint8]string{
+		0x0: "NO_DISABLE",    // both buffers are enabled
+		0x1: "TX_DISABLE",    // output buffer is disabled
+		0x2: "RX_DISABLE",    // input buffer is disabled
+		0x3: "TX_RX_DISABLE", // both buffers are disabled
+	}
+	macro.add(", " + buffDisStat[macro.getData().getGPIORxTxDisableStatus()])
+	return macro
+}
+
 //Adds pad native function (PMODE) as a new argument
 //return: macro
 func (macro *macro) padfn() *macro {
@@ -232,8 +245,19 @@ func (macro *macro) getBase() (string, error) {
 			err = fmt.Errorf("Error: Missing template for creating macros")
 		}
 	} else {
-		/* PAD NF e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1) */
-		macro.add("_NF").add("(").id().pull().rstsrc().padfn()
+		var isEdge = (dw.getRXLevelEdgeConfiguration() != 0)
+		var isTxRxBufDis = (dw.getGPIORxTxDisableStatus() != 0)
+		// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
+		macro.add("_NF")
+		if isEdge || isTxRxBufDis {
+			// e.g. PCHHOT#
+			// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
+			macro.add("_BUF_TRIG")
+		}
+		macro.add("(").id().pull().rstsrc().padfn()
+		if isEdge || isTxRxBufDis {
+			macro.bufdis().trig()
+		}
 		err = nil
 	}
 	macro.add("),")
