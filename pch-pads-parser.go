@@ -45,14 +45,14 @@ func (info *padInfo) Add(line string) {
 // Print GPIO group title to file
 // gpio : gpio.c file descriptor
 func (info *padInfo) TitleFprint(gpio *os.File) {
-	fmt.Fprintf(gpio, "\t/* %s */\n", info.function)
+	fmt.Fprintf(gpio, "\n\t/* %s */\n", info.function)
 }
 
 // Print Reserved GPIO to file as comment
 // gpio : gpio.c file descriptor
 func (info *padInfo) ReservedFprint(gpio *os.File) {
 	// small comment about reserved port
-	fmt.Fprintf(gpio, "\t/* %s */\n", info.function)
+	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 }
 
 // Print information about current pad to file using raw format:
@@ -73,9 +73,10 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
 	if str, err := getMacro(info.id, &info.data); err == nil {
 		fmt.Fprintf(gpio,
-			"\t%s /* %s */\n",
-			str,
-			info.function)
+			"\t/* %s - %s */\n\t%s\n",
+			info.id,
+			info.function,
+			str)
 	} else {
 		// In the case where there is no template for creating a macro,
 		// the raw format will be used for output
