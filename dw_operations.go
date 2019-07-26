@@ -51,11 +51,13 @@ const (
 )
 
 type configData struct {
-	dw [MAX_DW]uint32
+	dw   [MAX_DW]uint32
+	mask [MAX_DW]uint32
 }
 
 func (data *configData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint8 {
 	if regNum < MAX_DW {
+		data.mask[regNum] |= mask
 		return uint8((data.dw[regNum] & mask) >> shift)
 	}
 	return 0
