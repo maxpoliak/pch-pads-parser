@@ -2,53 +2,63 @@ package main
 
 const (
 	PADRSTCFG_SHIFT uint8  = 30
-	PADRSTCFG_MASK  uint32 = 0x3
+	PADRSTCFG_MASK  uint32 = 0x3 << PADRSTCFG_SHIFT
 
 	RXPADSTSEL_SHIFT uint8  = 29
-	RXPADSTSEL_MASK  uint32 = 0x1
+	RXPADSTSEL_MASK  uint32 = 0x1 << RXPADSTSEL_SHIFT
 
 	RXRAW1_SHIFT uint8  = 28
-	RXRAW1_MASK  uint32 = 0x1
+	RXRAW1_MASK  uint32 = 0x1 << RXRAW1_SHIFT
 
 	RXEVCFG_SHIFT uint8  = 25
-	RXEVCFG_MASK  uint32 = 0x3
+	RXEVCFG_MASK  uint32 = 0x3 << RXEVCFG_SHIFT
 
 	RXINV_SHIFT uint8  = 23
-	RXINV_MASK  uint32 = 0x1
+	RXINV_MASK  uint32 = 0x1 << RXINV_SHIFT
 
 	GPIROUTIOXAPIC_SHIFT uint8  = 20
-	GPIROUTIOXAPIC_MASK  uint32 = 0x1
+	GPIROUTIOXAPIC_MASK  uint32 = 0x1 << GPIROUTIOXAPIC_SHIFT
 
 	GPIROUTSCI_SHIFT uint8  = 19
-	GPIROUTSCI_MASK  uint32 = 0x1
+	GPIROUTSCI_MASK  uint32 = 0x1 << GPIROUTSCI_SHIFT
 
 	GPIROUTSMI_SHIFT uint8  = 18
-	GPIROUTSMI_MASK  uint32 = 0x1
+	GPIROUTSMI_MASK  uint32 = 0x1 << GPIROUTSMI_SHIFT
 
 	GPIROUTNMI_SHIFT uint8  = 17
-	GPIROUTNMI_MASK  uint32 = 0x1
+	GPIROUTNMI_MASK  uint32 = 0x1 << GPIROUTNMI_SHIFT
 
 	PMODE_SHIFT uint8  = 10
-	PMODE_MASK  uint32 = 0x7
+	PMODE_MASK  uint32 = 0x7 << PMODE_SHIFT
 
 	GPIORXTXDIS_SHIFT uint8  = 8
-	GPIORXTXDIS_MASK  uint32 = 0x3
+	GPIORXTXDIS_MASK  uint32 = 0x3 << GPIORXTXDIS_SHIFT
 
 	GPIORXSTATE_SHIFT uint8  = 1
-	GPIORXSTATE_MASK  uint32 = 0x1
+	GPIORXSTATE_MASK  uint32 = 0x1 << GPIORXSTATE_SHIFT
 
 	GPIOTXSTATE_MASK uint32 = 0x1
 )
 
 const (
 	TERM_SHIFT  uint8  = 10
-	TERM_MASK   uint32 = 0xF
+	TERM_MASK   uint32 = 0xF << TERM_SHIFT
 	INTSEL_MASK uint32 = 0xFF
 )
 
+const (
+	MAX_DW = 2
+)
+
 type configData struct {
-	dw0 uint32
-	dw1 uint32
+	dw [MAX_DW]uint32
+}
+
+func (data *configData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint8 {
+	if regNum < MAX_DW {
+		return uint8((data.dw[regNum] & mask) >> shift)
+	}
+	return 0
 }
 
 /*
@@ -65,7 +75,7 @@ entry.
 11 = Reserved
 */
 func (data *configData) getResetConfig() uint8 {
-	return uint8((data.dw0 >> PADRSTCFG_SHIFT) & PADRSTCFG_MASK)
+	return data.getFieldVal(0, PADRSTCFG_MASK, PADRSTCFG_SHIFT)
 }
 
 /*
@@ -77,7 +87,7 @@ if the pad is in GPIO mode (i.e. Pad Mode = 0)
 1 = Internal RX pad state (subject to RXINV and PreGfRXSel settings)
 */
 func (data *configData) getRXPadStateSelect() uint8 {
-	return uint8((data.dw0 >> RXPADSTSEL_SHIFT) & RXPADSTSEL_MASK)
+	return data.getFieldVal(0, RXPADSTSEL_MASK, RXPADSTSEL_SHIFT)
 }
 
 /*
@@ -90,7 +100,7 @@ buffer and before the RXINV
 1 = RX drive 1 internally
 */
 func (data *configData) getRXRawOverrideStatus() uint8 {
-	return uint8((data.dw0 >> RXRAW1_SHIFT) & RXRAW1_MASK)
+	return data.getFieldVal(0, RXRAW1_MASK, RXRAW1_SHIFT)
 }
 
 /*
@@ -107,7 +117,7 @@ Community Controller
 3h = Reserved (implement as setting 0h)
 */
 func (data *configData) getRXLevelEdgeConfiguration() uint8 {
-	return uint8((data.dw0 >> RXEVCFG_SHIFT) & RXEVCFG_MASK)
+	return data.getFieldVal(0, RXEVCFG_MASK, RXEVCFG_SHIFT)
 }
 
 /*
@@ -125,7 +135,7 @@ cause IRQ, SMI#, SCI or NMI
 1 = Inversion
 */
 func (data *configData) getRXLevelConfiguration() bool {
-	return (data.dw0 >> RXINV_SHIFT) & RXINV_MASK != 0
+	return data.getFieldVal(0, RXINV_MASK, RXINV_SHIFT) != 0
 }
 
 /*
@@ -139,7 +149,7 @@ is used as the last qualifier for the peripheral IRQ indication to the
 intended recipient(s).
 */
 func (data *configData) getGPIOInputRouteIOxAPIC() bool {
-	return (data.dw0 >> GPIROUTIOXAPIC_SHIFT) & GPIROUTIOXAPIC_MASK != 0
+	return data.getFieldVal(0, GPIROUTIOXAPIC_MASK, GPIROUTIOXAPIC_SHIFT) != 0
 }
 
 /*
@@ -153,7 +163,7 @@ used as the last qualifier for the GPE indication to the intended
 recipient(s).
 */
 func (data *configData) getGPIOInputRouteSCI() bool {
-	return (data.dw0 >> GPIROUTSCI_SHIFT) & GPIROUTSCI_MASK != 0
+	return data.getFieldVal(0, GPIROUTSCI_MASK, GPIROUTSCI_SHIFT) != 0
 }
 
 /*
@@ -163,7 +173,7 @@ This bit only applies to a GPIO that has SMI capability.
 Otherwise, the bit is RO.
 */
 func (data *configData) getGPIOInputRouteSMI() bool {
-	return (data.dw0 >> GPIROUTSMI_SHIFT) & GPIROUTSMI_MASK != 0
+	return data.getFieldVal(0, GPIROUTSMI_MASK, GPIROUTSMI_SHIFT) != 0
 }
 
 /*
@@ -173,7 +183,7 @@ This bit only applies to a GPIO that has NMI capability. Otherwise, the
 bit is RO.
 */
 func (data *configData) getGPIOInputRouteNMI() bool {
-	return (data.dw0 >> GPIROUTNMI_SHIFT) & GPIROUTNMI_MASK != 0
+	return data.getFieldVal(0, GPIROUTNMI_MASK, GPIROUTNMI_SHIFT) != 0
 }
 
 /*
@@ -192,7 +202,7 @@ no effect. Default value is determined by the default functionality of the
 pad.
 */
 func (data *configData) getPadMode() uint8 {
-	return uint8((data.dw0 >> PMODE_SHIFT) & PMODE_MASK)
+	return data.getFieldVal(0, PMODE_MASK, PMODE_SHIFT)
 }
 
 /*
@@ -208,7 +218,7 @@ enable) of the pad.
 1 = Disable the output buffer of the pad; i.e. Hi-Z
 */
 func (data *configData) getGPIORxTxDisableStatus() uint8 {
-	return uint8((data.dw0 >> GPIORXTXDIS_SHIFT) & GPIORXTXDIS_MASK)
+	return data.getFieldVal(0, GPIORXTXDIS_MASK, GPIORXTXDIS_SHIFT)
 }
 
 /*
@@ -217,7 +227,7 @@ state after Glitch Filter logic stage and is not affected by PMode and
 RXINV settings.
 */
 func (data *configData) getGPIORXState() uint8 {
-	return uint8((data.dw0 >> GPIORXSTATE_SHIFT) & GPIORXSTATE_MASK)
+	return data.getFieldVal(0, GPIORXSTATE_MASK, GPIORXSTATE_SHIFT)
 }
 
 /*
@@ -226,7 +236,7 @@ GPIO TX State (GPIOTXSTATE):
 1 = Drive a level '1' to the TX output pad
 */
 func (data *configData) getGPIOTXState() int {
-	return int(data.dw0 & GPIOTXSTATE_MASK)
+	return int(data.getFieldVal(0, GPIOTXSTATE_MASK, 0))
 }
 
 /*
@@ -255,7 +265,7 @@ the pad from output to input direction, PU/PD settings should be programmed
 first to ensure the input does not float momentarily.
 */
 func (data *configData) getTermination() uint8 {
-	return uint8((data.dw1 >> TERM_SHIFT) & TERM_MASK)
+	return data.getFieldVal(1, TERM_MASK, TERM_SHIFT)
 }
 
 /*
@@ -268,5 +278,5 @@ on this pad.
 Up to the max IOxAPIC IRQ supported
 */
 func (data *configData) getInterruptSelect() uint8 {
-	return uint8(data.dw1 & INTSEL_MASK)
+	return data.getFieldVal(1, INTSEL_MASK, 0)
 }

@@ -12,7 +12,7 @@ import (
 // id       : pad id string
 // offset   : the offset of the register address relative to the base
 // function : the string that means the pad function
-// data     : dw0 and dw1 configuration register data
+// data     : dw configuration register data
 type padInfo struct {
 	id       string
 	offset   uint16
@@ -38,8 +38,8 @@ func (info *padInfo) Add(line string) {
 		&val,
 		&info.id,
 		&info.function)
-	info.data.dw0 = uint32(val & 0xffffffff)
-	info.data.dw1 = uint32(val >> 32)
+	info.data.dw[0] = uint32(val & 0xffffffff)
+	info.data.dw[1] = uint32(val >> 32)
 }
 
 // Print GPIO group title to file
@@ -62,8 +62,8 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 	fmt.Fprintf(gpio,
 		"\tPCH_PAD_DW_CFG(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
 		info.id,
-		info.data.dw0,
-		(info.data.dw1 & 0xffffff00), // Interrupt Select - RO
+		info.data.dw[0],
+		(info.data.dw[1] & 0xffffff00), // Interrupt Select - RO
 		info.function)
 }
 
@@ -108,7 +108,7 @@ func (inteltool *InteltoolData) PadMapFprint(gpio *os.File, raw bool) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
 	for _, pad := range inteltool.padmap {
-		switch pad.data.dw0 {
+		switch pad.data.dw[0] {
 		case 0:
 			pad.TitleFprint(gpio)
 		case 0xffffffff:
