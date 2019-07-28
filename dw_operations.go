@@ -63,6 +63,24 @@ func (data *configData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint
 	return 0
 }
 
+// Check the mask of the new macro
+// regNum : DW register number
+// Returns true if the macro is generated correctly
+func (data *configData) maskCheck(regNum uint8) bool {
+	if regNum >= MAX_DW {
+		return false
+	}
+
+	// Take into account the bits that are read-only
+	readonly := [MAX_DW]uint32{
+		(0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe,
+		0xfffffc3f,
+	}
+	mask := ^(data.mask[regNum] | readonly[regNum])
+	data.mask[regNum] = mask
+	return data.dw[regNum]&mask == 0
+}
+
 /*
 Pad Reset Config (PADRSTCFG): This register controls which reset is used
 to reset GPIO pad register fields in PAD_CFG_DW0 and PAD_CFG_DW1 registers.

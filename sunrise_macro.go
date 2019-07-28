@@ -211,6 +211,23 @@ func (macro *macro) addSuffixOutput() {
 		macro.pull()
 	}
 	macro.rstsrc()
+
+	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
+	// See https://github.com/coreboot/coreboot/commit/3820e3c
+	macro.getData().mask[0] |= (0x3 << 26)
+}
+
+// Check created macro
+func (macro *macro) macroCheck() {
+	if dw := macro.getData(); !dw.maskCheck(0) {
+		// Debug message about this
+		fmt.Printf(
+			"Mask error for pad: %s | dw0 = 0x%x | mask = 0x%x | res = 0x%x\n",
+			macro.padID,
+			dw.dw[0],
+			dw.mask[0],
+			(dw.dw[0] & dw.mask[0]))
+	}
 }
 
 const (
@@ -240,6 +257,12 @@ func (macro *macro) getBase() (string, error) {
 		case RX_DIS | TX_DIS:
 			/* NC */
 			macro.set("PAD_NC").add("(").id().pull()
+			// Fix mask for RX Level/Edge Configuration (RXEVCFG)
+			// and Pad Reset Config (PADRSTCFG)
+			// There is no need to check these fields if the pad
+			// is in the NC state
+			macro.getData().mask[0] |= (0x3 << 30) | (0x3 << 26)
+
 		default:
 			macro.set("PAD_INVALID").add("(").id()
 			err = fmt.Errorf("Error: Missing template for creating macros")
@@ -261,6 +284,7 @@ func (macro *macro) getBase() (string, error) {
 		err = nil
 	}
 	macro.add("),")
+	macro.macroCheck()
 	return macro.str, err
 }
 
