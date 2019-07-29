@@ -81,6 +81,20 @@ func (data *configData) maskCheck(regNum uint8) bool {
 	return data.dw[regNum]&mask == 0
 }
 
+// Fix Pad Reset Config field in mask for DW0 register
+// Returns *configData
+func (data *configData) maskResetFix() *configData {
+	data.mask[0] |= PADRSTCFG_MASK
+	return data
+}
+
+// Fix RX Level/Edge Configuration field in mask for DW0 register
+// Returns *configData
+func (data *configData) maskTrigFix() *configData {
+	data.mask[0] |= RXEVCFG_MASK
+	return data
+}
+
 /*
 Pad Reset Config (PADRSTCFG): This register controls which reset is used
 to reset GPIO pad register fields in PAD_CFG_DW0 and PAD_CFG_DW1 registers.

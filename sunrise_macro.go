@@ -214,7 +214,7 @@ func (macro *macro) addSuffixOutput() {
 
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 	// See https://github.com/coreboot/coreboot/commit/3820e3c
-	macro.getData().mask[0] |= (0x3 << 26)
+	macro.getData().maskTrigFix()
 }
 
 // Check created macro
@@ -261,7 +261,7 @@ func (macro *macro) getBase() (string, error) {
 			// and Pad Reset Config (PADRSTCFG)
 			// There is no need to check these fields if the pad
 			// is in the NC state
-			macro.getData().mask[0] |= (0x3 << 30) | (0x3 << 26)
+			macro.getData().maskResetFix().maskTrigFix()
 
 		default:
 			macro.set("PAD_INVALID").add("(").id()
