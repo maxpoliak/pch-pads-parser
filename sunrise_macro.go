@@ -39,7 +39,8 @@ func (macro *macro) id() *macro {
 
 // Add separator to macro if needed
 func (macro *macro) separator() *macro {
-	if macro.str[len(macro.str)-1] != '(' {
+	c := macro.str[len(macro.str)-1]
+	if c != '(' && c != '_' {
 		macro.add(", ")
 	}
 	return macro
@@ -225,6 +226,43 @@ func (macro *macro) addSuffixOutput() {
 	macro.getData().maskTrigFix()
 }
 
+const (
+	RX_DIS uint8 = 0x2
+	TX_DIS uint8 = 0x1
+)
+
+// Set common macros macros if the standard ones can't define the values from
+// the DW0/1 register
+func (macro *macro) common() *macro {
+	macro.set("PCH_PAD_DW_CFG(").id().
+		add(",\n\t\tPAD_FUNC(").padfn().
+		add(") | PAD_RESET(").rstsrc().add(") |\n\t\t")
+
+	var str string
+	var argument = true
+	switch dw := macro.getData(); {
+	case dw.getGPIOInputRouteIOxAPIC():
+		str = "IOAPIC"
+	case dw.getGPIOInputRouteSCI():
+		str = "SCI"
+	case dw.getGPIOInputRouteSMI():
+		str = "SMI"
+	case dw.getGPIOInputRouteNMI():
+		str = "NMI"
+	default:
+		argument = false
+	}
+
+	if argument {
+		macro.add("PAD_IRQ_CFG(").add(str).trig().invert().add(")")
+	} else {
+		macro.add("PAD_CFG0_TRIG_").trig().add(" | PAD_CFG0_RX_POL_").invert()
+	}
+
+	return macro.add(" |\n\t\t").add("PAD_BUF(").bufdis().add("),").
+		add("\n\t\tPAD_PULL(").pull().add(")),")
+}
+
 // Check created macro
 func (macro *macro) macroCheck() {
 	if dw := macro.getData(); !dw.maskCheck(0) {
@@ -237,11 +275,6 @@ func (macro *macro) macroCheck() {
 			(dw.dw[0] & dw.mask[0]))
 	}
 }
-
-const (
-	RX_DIS uint8 = 0x2
-	TX_DIS uint8 = 0x1
-)
 
 // Gets base string of current macro
 // return: string of macro
