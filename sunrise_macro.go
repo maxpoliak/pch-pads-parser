@@ -34,8 +34,7 @@ func (macro *macro) set(str string) *macro {
 // Adds PAD Id to the macro as a new argument
 // return: macro
 func (macro *macro) id() *macro {
-	macro.add(macro.padID)
-	return macro
+	return macro.add(macro.padID)
 }
 
 // Add separator to macro if needed
@@ -49,28 +48,26 @@ func (macro *macro) separator() *macro {
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: macro
 func (macro *macro) rstsrc() *macro {
-	var dw = macro.getData()
 	var resetSrc = map[uint8]string{
 		0x0: "PWROK",
 		0x1: "DEEP",
 		0x2: "PLTRST",
 	}
-	macro.separator()
-	if str, valid := resetSrc[dw.getResetConfig()]; valid {
-		macro.add(str)
-	} else {
-		// 3h = Reserved (implement as setting 0h) for sky pch
-		macro.add("PWROK")
-		fmt.Println("Warning:", macro.padID, "PADRSTCFG = 3h Reserved")
-		fmt.Println("It is implemented as setting 0h (PWROK) for Skylake/Kaby Lake PCH")
+	str, valid := resetSrc[macro.getData().getResetConfig()]
+	if !valid {
+		// 3h = Reserved (implement as setting 0h) for Sunrice PCH
+		str = resetSrc[0]
+		fmt.Println("Warning:",
+			macro.padID,
+			"PADRSTCFG = 3h Reserved")
+		fmt.Println("It is implemented as setting 0h (PWROK) for Sunrise PCH")
 	}
-	return macro
+	return macro.separator().add(str)
 }
 
 // Adds The Pad Termination (TERM) parameter from DW1 to the macro as a new argument
 // return: macro
 func (macro *macro) pull() *macro {
-	var dw = macro.getData()
 	var pull = map[uint8]string{
 		0x0: "NONE",
 		0x2: "5K_PD",
@@ -81,15 +78,15 @@ func (macro *macro) pull() *macro {
 		0xc: "20K_PU",
 		0xd: "667_PU",
 		0xf: "NATIVE"}
-	macro.separator()
-	if str, valid := pull[dw.getTermination()]; valid {
-		macro.add(str)
-	} else {
-		macro.add("INVALID")
-		fmt.Println("Error", macro.padID, " invalid TERM value = ",
-			int(dw.getTermination()))
+	str, valid := pull[macro.getData().getTermination()]
+	if !valid {
+		str = "INVALID"
+		fmt.Println("Error",
+			macro.padID,
+			" invalid TERM value = ",
+			int(macro.getData().getTermination()))
 	}
-	return macro
+	return macro.separator().add(str)
 }
 
 // Adds Pad GPO value to macro string as a new argument
@@ -143,14 +140,14 @@ func (macro *macro) padfn() *macro {
 	if nfnum != 0 {
 		return macro.separator().add("NF"+strconv.Itoa(nfnum))
 	}
+	// GPIO used only for PAD_FUNC(x) macro
 	return macro.add("GPIO")
 }
 
 // Adds suffix to GPI macro with arguments
 func (macro *macro) addSuffixInput() {
-	var dw = macro.getData()
-	var isEdge = dw.getRXLevelEdgeConfiguration()
-
+	dw := macro.getData()
+	isEdge := dw.getRXLevelEdgeConfiguration()
 	macro.add("_GPI")
 	switch {
 	case dw.getGPIOInputRouteNMI():
@@ -211,7 +208,7 @@ func (macro *macro) addSuffixInput() {
 
 // Adds suffix to GPO macro with arguments
 func (macro *macro) addSuffixOutput() {
-	var term = macro.getData().getTermination()
+	term := macro.getData().getTermination()
 	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
@@ -250,9 +247,9 @@ const (
 // return: string of macro
 //         error
 func (macro *macro) getBase() (string, error) {
-	var dw = macro.getData()
 	var err error
 
+	dw := macro.getData()
 	macro.set("PAD_CFG")
 	if dw.getPadMode() == 0 {
 		/* GPIO */
@@ -279,8 +276,8 @@ func (macro *macro) getBase() (string, error) {
 			err = fmt.Errorf("Error: Missing template for creating macros")
 		}
 	} else {
-		var isEdge = (dw.getRXLevelEdgeConfiguration() != 0)
-		var isTxRxBufDis = (dw.getGPIORxTxDisableStatus() != 0)
+		isEdge := dw.getRXLevelEdgeConfiguration() != 0
+		isTxRxBufDis := dw.getGPIORxTxDisableStatus() != 0
 		// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 		macro.add("_NF")
 		if isEdge || isTxRxBufDis {
