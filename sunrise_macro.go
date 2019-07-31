@@ -38,6 +38,14 @@ func (macro *macro) id() *macro {
 	return macro
 }
 
+// Add separator to macro if needed
+func (macro *macro) separator() *macro {
+	if macro.str[len(macro.str)-1] != '(' {
+		macro.add(", ")
+	}
+	return macro
+}
+
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: macro
 func (macro *macro) rstsrc() *macro {
@@ -47,11 +55,12 @@ func (macro *macro) rstsrc() *macro {
 		0x1: "DEEP",
 		0x2: "PLTRST",
 	}
+	macro.separator()
 	if str, valid := resetSrc[dw.getResetConfig()]; valid {
-		macro.add(", " + str)
+		macro.add(str)
 	} else {
 		// 3h = Reserved (implement as setting 0h) for sky pch
-		macro.add(", PWROK")
+		macro.add("PWROK")
 		fmt.Println("Warning:", macro.padID, "PADRSTCFG = 3h Reserved")
 		fmt.Println("It is implemented as setting 0h (PWROK) for Skylake/Kaby Lake PCH")
 	}
@@ -72,10 +81,11 @@ func (macro *macro) pull() *macro {
 		0xc: "20K_PU",
 		0xd: "667_PU",
 		0xf: "NATIVE"}
+	macro.separator()
 	if str, valid := pull[dw.getTermination()]; valid {
-		macro.add(", " + str)
+		macro.add(str)
 	} else {
-		macro.add(", INVALID")
+		macro.add("INVALID")
 		fmt.Println("Error", macro.padID, " invalid TERM value = ",
 			int(dw.getTermination()))
 	}
@@ -85,8 +95,7 @@ func (macro *macro) pull() *macro {
 // Adds Pad GPO value to macro string as a new argument
 // return: macro
 func (macro *macro) val() *macro {
-	macro.add(", " + strconv.Itoa(macro.getData().getGPIOTXState()))
-	return macro
+	return macro.separator().add(strconv.Itoa(macro.getData().getGPIOTXState()))
 }
 
 // Adds Pad GPO value to macro string as a new argument
@@ -99,17 +108,17 @@ func (macro *macro) trig() *macro {
 		0x2: "OFF",
 		0x3: "EDGE_BOTH",
 	}
-	macro.add(", " + trig[dw.getRXLevelEdgeConfiguration()])
-	return macro
+	return macro.separator().add(trig[dw.getRXLevelEdgeConfiguration()])
 }
 
 // Adds Pad Polarity Inversion Stage (RXINV) to macro string as a new argument
 // return: macro
 func (macro *macro) invert() *macro {
+	macro.separator()
 	if macro.getData().getRXLevelConfiguration() {
-		macro.add(", YES")
+		macro.add("YES")
 	} else {
-		macro.add(", NONE")
+		macro.add("NONE")
 	}
 	return macro
 }
@@ -123,16 +132,18 @@ func (macro *macro) bufdis() *macro {
 		0x2: "RX_DISABLE",    // input buffer is disabled
 		0x3: "TX_RX_DISABLE", // both buffers are disabled
 	}
-	macro.add(", " + buffDisStat[macro.getData().getGPIORxTxDisableStatus()])
-	return macro
+	state := macro.getData().getGPIORxTxDisableStatus()
+	return macro.separator().add(buffDisStat[state])
 }
 
 //Adds pad native function (PMODE) as a new argument
 //return: macro
 func (macro *macro) padfn() *macro {
-	var nfnum = int(macro.getData().getPadMode())
-	macro.add(", NF" + strconv.Itoa(nfnum))
-	return macro
+	nfnum := int(macro.getData().getPadMode())
+	if nfnum != 0 {
+		return macro.separator().add("NF"+strconv.Itoa(nfnum))
+	}
+	return macro.add("GPIO")
 }
 
 // Adds suffix to GPI macro with arguments
