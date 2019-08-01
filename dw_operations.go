@@ -77,7 +77,6 @@ func (data *configData) maskCheck(regNum uint8) bool {
 		0xfffffc3f,
 	}
 	mask := ^(data.mask[regNum] | readonly[regNum])
-	data.mask[regNum] = mask
 	return data.dw[regNum]&mask == 0
 }
 

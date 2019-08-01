@@ -264,15 +264,14 @@ func (macro *macro) common() *macro {
 }
 
 // Check created macro
-func (macro *macro) macroCheck() {
-	if dw := macro.getData(); !dw.maskCheck(0) {
+func (macro *macro) check() {
+	if !macro.getData().maskCheck(0) {
+		macro.common()
 		// Debug message about this
 		fmt.Printf(
-			"Mask error for pad: %s | dw0 = 0x%x | mask = 0x%x | res = 0x%x\n",
-			macro.padID,
-			dw.dw[0],
-			dw.mask[0],
-			(dw.dw[0] & dw.mask[0]))
+			"\nCoreboot macros can't define the configuration for pad: %s\n",
+			macro.padID)
+		fmt.Printf("Use %s\n", macro.str)
 	}
 }
 
@@ -325,7 +324,7 @@ func (macro *macro) getBase() (string, error) {
 		err = nil
 	}
 	macro.add("),")
-	macro.macroCheck()
+	macro.check()
 	return macro.str, err
 }
 
