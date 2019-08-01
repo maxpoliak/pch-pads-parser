@@ -179,18 +179,18 @@ func (macro *macro) addSuffixInput() {
 	case dw.getGPIOInputRouteSCI():
 
 		// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
-		if isEdge & 0x1 != 0 {
+		if (isEdge & 0x1) != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
 		macro.add("_SCI").add("(").id().pull().rstsrc()
-		if isEdge & 0x1 == 0 {
+		if (isEdge & 0x1) == 0 {
 			macro.trig()
 		}
 		macro.invert()
 
 	case dw.getGPIOInputRouteSMI():
-		if isEdge & 0x1 != 0 {
+		if (isEdge & 0x1) != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
