@@ -56,11 +56,11 @@ func (info *padInfo) ReservedFprint(gpio *os.File) {
 }
 
 // Print information about current pad to file using raw format:
-// PCH_PAD_DW_CFG(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
+// _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
 func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 	fmt.Fprintf(gpio,
-		"\tPCH_PAD_DW_CFG(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
+		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
 		info.id,
 		info.data.dw[0],
 		(info.data.dw[1] & 0xffffff00), // Interrupt Select - RO
@@ -208,9 +208,6 @@ func CreateHdrFile() (err error) {
 
 #include <soc/gpe.h>
 #include <soc/gpio.h>
-
-#define PCH_PAD_DW_CFG(val, config0, config1)  \
-		_PAD_CFG_STRUCT(val, config0, config1)
 
 const struct pad_config *get_gpio_table(size_t *num);
 const struct pad_config *get_early_gpio_table(size_t *num);

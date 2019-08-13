@@ -234,7 +234,7 @@ const (
 // Set common macros macros if the standard ones can't define the values from
 // the DW0/1 register
 func (macro *macro) common() *macro {
-	macro.set("PCH_PAD_DW_CFG(").id().
+	macro.set("_PAD_CFG_STRUCT(").id().
 		add(",\n\t\tPAD_FUNC(").padfn().
 		add(") | PAD_RESET(").rstsrc().add(") |\n\t\t")
 
