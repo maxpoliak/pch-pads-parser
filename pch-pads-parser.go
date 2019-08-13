@@ -71,17 +71,10 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
 func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
-	if str, err := getMacro(info.id, &info.data); err == nil {
-		fmt.Fprintf(gpio,
-			"\t/* %s - %s */\n\t%s\n",
+	fmt.Fprintf(gpio, "\t/* %s - %s */\n\t%s\n",
 			info.id,
 			info.function,
-			str)
-	} else {
-		// In the case where there is no template for creating a macro,
-		// the raw format will be used for output
-		info.FprintPadInfoRaw(gpio)
-	}
+			getMacro(info.id, &info.data))
 }
 
 // InteltoolData

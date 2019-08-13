@@ -278,9 +278,7 @@ func (macro *macro) check() {
 // Gets base string of current macro
 // return: string of macro
 //         error
-func (macro *macro) getBase() (string, error) {
-	var err error
-
+func (macro *macro) getBase() string {
 	dw := macro.getData()
 	macro.set("PAD_CFG")
 	if dw.getPadMode() == 0 {
@@ -304,8 +302,9 @@ func (macro *macro) getBase() (string, error) {
 			macro.getData().maskResetFix().maskTrigFix()
 
 		default:
-			macro.set("PAD_INVALID").add("(").id()
-			err = fmt.Errorf("Error: Missing template for creating macros")
+			// In case the rule isn't found, a common macro is used
+			// to create the pad configuration
+			return macro.common().str
 		}
 	} else {
 		isEdge := dw.getRXLevelEdgeConfiguration() != 0
@@ -321,17 +320,16 @@ func (macro *macro) getBase() (string, error) {
 		if isEdge || isTxRxBufDis {
 			macro.bufdis().trig()
 		}
-		err = nil
 	}
 	macro.add("),")
 	macro.check()
-	return macro.str, err
+	return macro.str
 }
 
 // Get pad macro
 // return: string of macro
 //         error
-func getMacro(padID string, data *configData) (string, error) {
+func getMacro(padID string, data *configData) string {
 	var macro macro
 	macro.initData(padID, data)
 	return macro.getBase()
