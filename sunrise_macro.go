@@ -31,6 +31,10 @@ func (macro *macro) set(str string) *macro {
 	return macro
 }
 
+func (macro *macro) get() string {
+	return macro.str
+}
+
 // Adds PAD Id to the macro as a new argument
 // return: macro
 func (macro *macro) id() *macro {
@@ -39,7 +43,8 @@ func (macro *macro) id() *macro {
 
 // Add separator to macro if needed
 func (macro *macro) separator() *macro {
-	c := macro.str[len(macro.str)-1]
+	str := macro.get()
+	c := str[len(str)-1]
 	if c != '(' && c != '_' {
 		macro.add(", ")
 	}
@@ -271,7 +276,7 @@ func (macro *macro) check() {
 		fmt.Printf(
 			"\nCoreboot macros can't define the configuration for pad: %s\n",
 			macro.padID)
-		fmt.Printf("Use %s\n", macro.str)
+		fmt.Printf("Use %s\n", macro.get())
 	}
 }
 
@@ -304,7 +309,7 @@ func (macro *macro) getBase() string {
 		default:
 			// In case the rule isn't found, a common macro is used
 			// to create the pad configuration
-			return macro.common().str
+			return macro.common().get()
 		}
 	} else {
 		isEdge := dw.getRXLevelEdgeConfiguration() != 0
@@ -323,7 +328,7 @@ func (macro *macro) getBase() string {
 	}
 	macro.add("),")
 	macro.check()
-	return macro.str
+	return macro.get()
 }
 
 // Get pad macro
