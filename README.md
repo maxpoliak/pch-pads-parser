@@ -15,4 +15,10 @@ or
 (shell)$ go build
 (shell)$ ./pch-pads-parser -file /path/to/inteltool.log
 ```
+
+Test:
+```bash
+(shell)$ ./pch-pads-parser -file examples/inteltool-asrock-h110m-dvs.log
+(shell)$ ./pch-pads-parser -file examples/inteltool-asrock-h110m-stx.log
+```
 [coreboot]: https://github.com/coreboot/coreboot
