@@ -264,8 +264,11 @@ func (macro *macro) common() *macro {
 		macro.add("PAD_CFG0_TRIG_").trig().add(" | PAD_CFG0_RX_POL_").invert()
 	}
 
-	return macro.add(" |\n\t\t").add("PAD_BUF(").bufdis().add("),").
-		add("\n\t\tPAD_PULL(").pull().add(")),")
+	macro.add(" |\n\t\t").add("PAD_BUF(").bufdis().add(")")
+	if macro.getData().getGPIOTXState() != 0 {
+		macro.add(" | 1")
+	}
+	return macro.add(",\n\t\tPAD_PULL(").pull().add(")),")
 }
 
 // Check created macro
