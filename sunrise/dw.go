@@ -1,4 +1,4 @@
-package main
+package sunrise
 
 const (
 	PADRSTCFG_SHIFT uint8  = 30
@@ -50,12 +50,12 @@ const (
 	MAX_DW = 2
 )
 
-type configData struct {
+type сonfigData struct {
 	dw   [MAX_DW]uint32
 	mask [MAX_DW]uint32
 }
 
-func (data *configData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint8 {
+func (data *сonfigData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint8 {
 	if regNum < MAX_DW {
 		data.mask[regNum] |= mask
 		return uint8((data.dw[regNum] & mask) >> shift)
@@ -66,7 +66,7 @@ func (data *configData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint
 // Check the mask of the new macro
 // regNum : DW register number
 // Returns true if the macro is generated correctly
-func (data *configData) maskCheck(regNum uint8) bool {
+func (data *сonfigData) maskCheck(regNum uint8) bool {
 	if regNum >= MAX_DW {
 		return false
 	}
@@ -81,15 +81,15 @@ func (data *configData) maskCheck(regNum uint8) bool {
 }
 
 // Fix Pad Reset Config field in mask for DW0 register
-// Returns *configData
-func (data *configData) maskResetFix() *configData {
+// Returns *сonfigData
+func (data *сonfigData) maskResetFix() *сonfigData {
 	data.mask[0] |= PADRSTCFG_MASK
 	return data
 }
 
 // Fix RX Level/Edge Configuration field in mask for DW0 register
-// Returns *configData
-func (data *configData) maskTrigFix() *configData {
+// Returns *сonfigData
+func (data *сonfigData) maskTrigFix() *сonfigData {
 	data.mask[0] |= RXEVCFG_MASK
 	return data
 }
@@ -107,7 +107,7 @@ entry.
 10 = PLTRST#
 11 = Reserved
 */
-func (data *configData) getResetConfig() uint8 {
+func (data *сonfigData) getResetConfig() uint8 {
 	return data.getFieldVal(0, PADRSTCFG_MASK, PADRSTCFG_SHIFT)
 }
 
@@ -119,7 +119,7 @@ if the pad is in GPIO mode (i.e. Pad Mode = 0)
 0 = Raw RX pad state directly from RX buffer
 1 = Internal RX pad state (subject to RXINV and PreGfRXSel settings)
 */
-func (data *configData) getRXPadStateSelect() uint8 {
+func (data *сonfigData) getRXPadStateSelect() uint8 {
 	return data.getFieldVal(0, RXPADSTSEL_MASK, RXPADSTSEL_SHIFT)
 }
 
@@ -132,7 +132,7 @@ buffer and before the RXINV
 0 = No Override
 1 = RX drive 1 internally
 */
-func (data *configData) getRXRawOverrideStatus() uint8 {
+func (data *сonfigData) getRXRawOverrideStatus() uint8 {
 	return data.getFieldVal(0, RXRAW1_MASK, RXRAW1_SHIFT)
 }
 
@@ -149,7 +149,7 @@ Community Controller
 2h = Drive '0'
 3h = Reserved (implement as setting 0h)
 */
-func (data *configData) getRXLevelEdgeConfiguration() uint8 {
+func (data *сonfigData) getRXLevelEdgeConfiguration() uint8 {
 	return data.getFieldVal(0, RXEVCFG_MASK, RXEVCFG_SHIFT)
 }
 
@@ -167,7 +167,7 @@ cause IRQ, SMI#, SCI or NMI
 0 = No inversion
 1 = Inversion
 */
-func (data *configData) getRXLevelConfiguration() bool {
+func (data *сonfigData) getRXLevelConfiguration() bool {
 	return data.getFieldVal(0, RXINV_MASK, RXINV_SHIFT) != 0
 }
 
@@ -181,7 +181,7 @@ Note: This bit does not affect any interrupt status bit within GPIO, but
 is used as the last qualifier for the peripheral IRQ indication to the
 intended recipient(s).
 */
-func (data *configData) getGPIOInputRouteIOxAPIC() bool {
+func (data *сonfigData) getGPIOInputRouteIOxAPIC() bool {
 	return data.getFieldVal(0, GPIROUTIOXAPIC_MASK, GPIROUTIOXAPIC_SHIFT) != 0
 }
 
@@ -195,7 +195,7 @@ Note: This bit does not affect any interrupt status bit within GPIO, but is
 used as the last qualifier for the GPE indication to the intended
 recipient(s).
 */
-func (data *configData) getGPIOInputRouteSCI() bool {
+func (data *сonfigData) getGPIOInputRouteSCI() bool {
 	return data.getFieldVal(0, GPIROUTSCI_MASK, GPIROUTSCI_SHIFT) != 0
 }
 
@@ -205,7 +205,7 @@ to cause SMI when configured in GPIO input mode
 This bit only applies to a GPIO that has SMI capability.
 Otherwise, the bit is RO.
 */
-func (data *configData) getGPIOInputRouteSMI() bool {
+func (data *сonfigData) getGPIOInputRouteSMI() bool {
 	return data.getFieldVal(0, GPIROUTSMI_MASK, GPIROUTSMI_SHIFT) != 0
 }
 
@@ -215,7 +215,7 @@ to cause NMI when configured in GPIO input mode
 This bit only applies to a GPIO that has NMI capability. Otherwise, the
 bit is RO.
 */
-func (data *configData) getGPIOInputRouteNMI() bool {
+func (data *сonfigData) getGPIOInputRouteNMI() bool {
 	return data.getFieldVal(0, GPIROUTNMI_MASK, GPIROUTNMI_SHIFT) != 0
 }
 
@@ -234,7 +234,7 @@ field If GPIO vs. native mode is configured via soft strap, this bit has
 no effect. Default value is determined by the default functionality of the
 pad.
 */
-func (data *configData) getPadMode() uint8 {
+func (data *сonfigData) getPadMode() uint8 {
 	return data.getFieldVal(0, PMODE_MASK, PMODE_SHIFT)
 }
 
@@ -250,7 +250,7 @@ enable) of the pad.
 
 1 = Disable the output buffer of the pad; i.e. Hi-Z
 */
-func (data *configData) getGPIORxTxDisableStatus() uint8 {
+func (data *сonfigData) getGPIORxTxDisableStatus() uint8 {
 	return data.getFieldVal(0, GPIORXTXDIS_MASK, GPIORXTXDIS_SHIFT)
 }
 
@@ -259,7 +259,7 @@ GPIO RX State (GPIORXSTATE): This is the current internal RX pad
 state after Glitch Filter logic stage and is not affected by PMode and
 RXINV settings.
 */
-func (data *configData) getGPIORXState() uint8 {
+func (data *сonfigData) getGPIORXState() uint8 {
 	return data.getFieldVal(0, GPIORXSTATE_MASK, GPIORXSTATE_SHIFT)
 }
 
@@ -268,7 +268,7 @@ GPIO TX State (GPIOTXSTATE):
 0 = Drive a level '0' to the TX output pad.
 1 = Drive a level '1' to the TX output pad
 */
-func (data *configData) getGPIOTXState() int {
+func (data *сonfigData) getGPIOTXState() int {
 	return int(data.getFieldVal(0, GPIOTXSTATE_MASK, 0))
 }
 
@@ -297,7 +297,7 @@ depending on the native functions involved. For example, before changing
 the pad from output to input direction, PU/PD settings should be programmed
 first to ensure the input does not float momentarily.
 */
-func (data *configData) getTermination() uint8 {
+func (data *сonfigData) getTermination() uint8 {
 	return data.getFieldVal(1, TERM_MASK, TERM_SHIFT)
 }
 
@@ -310,6 +310,6 @@ on this pad.
 ...
 Up to the max IOxAPIC IRQ supported
 */
-func (data *configData) getInterruptSelect() uint8 {
+func (data *сonfigData) getInterruptSelect() uint8 {
 	return data.getFieldVal(1, INTSEL_MASK, 0)
 }

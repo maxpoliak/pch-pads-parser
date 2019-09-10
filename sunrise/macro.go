@@ -1,4 +1,4 @@
-package main
+package sunrise
 
 import (
 	"fmt"
@@ -7,17 +7,11 @@ import (
 
 type macro struct {
 	padID string
-	dw    *configData
+	dw    *сonfigData
 	str   string
 }
 
-func (macro *macro) initData(padID string, data *configData) *macro {
-	macro.padID = padID
-	macro.dw = data
-	return macro
-}
-
-func (macro *macro) getData() *configData {
+func (macro *macro) getData() *сonfigData {
 	return macro.dw
 }
 
@@ -144,7 +138,7 @@ func (macro *macro) bufdis() *macro {
 func (macro *macro) padfn() *macro {
 	nfnum := int(macro.getData().getPadMode())
 	if nfnum != 0 {
-		return macro.separator().add("NF"+strconv.Itoa(nfnum))
+		return macro.separator().add("NF" + strconv.Itoa(nfnum))
 	}
 	// GPIO used only for PAD_FUNC(x) macro
 	return macro.add("GPIO")
@@ -290,18 +284,18 @@ func (macro *macro) getBase() string {
 	dw := macro.getData()
 	macro.set("PAD_CFG")
 	if dw.getPadMode() == 0 {
-		/* GPIO */
+		// GPIO
 		switch dw.getGPIORxTxDisableStatus() {
 		case TX_DIS:
-			/* GPI */
+			// GPI
 			macro.addSuffixInput()
 
 		case RX_DIS:
-			/* GPO */
+			// GPO
 			macro.addSuffixOutput()
 
 		case RX_DIS | TX_DIS:
-			/* NC */
+			// NC
 			macro.set("PAD_NC").add("(").id().pull()
 			// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 			// and Pad Reset Config (PADRSTCFG)
@@ -334,11 +328,15 @@ func (macro *macro) getBase() string {
 	return macro.get()
 }
 
-// Get pad macro
+// GetMacro - get pad macro
 // return: string of macro
 //         error
-func getMacro(padID string, data *configData) string {
+func GetMacro(padID string, dw0 uint32, dw1 uint32) string {
 	var macro macro
-	macro.initData(padID, data)
+	var cfg сonfigData
+	cfg.dw[0] = dw0
+	cfg.dw[1] = dw1
+	macro.padID = padID
+	macro.dw = &cfg
 	return macro.getBase()
 }

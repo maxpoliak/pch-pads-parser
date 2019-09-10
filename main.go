@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+import "./sunrise"
+
 // Information about pad
 // id       : pad id string
 // offset   : the offset of the register address relative to the base
@@ -17,7 +19,7 @@ type padInfo struct {
 	id       string
 	offset   uint16
 	function string
-	data     configData
+	dw       [sunrise.MAX_DW]uint32
 }
 
 // Add information about pad to data structure
@@ -26,7 +28,7 @@ func (info *padInfo) Add(line string) {
 	var val uint64
 	// ------- GPIO Group GPP_A -------
 	if strings.HasPrefix(line, "----") {
-		/* Add header to define GPIO group */
+		// Add header to define GPIO group
 		info.function = line
 		return
 	}
@@ -38,8 +40,8 @@ func (info *padInfo) Add(line string) {
 		&val,
 		&info.id,
 		&info.function)
-	info.data.dw[0] = uint32(val & 0xffffffff)
-	info.data.dw[1] = uint32(val >> 32)
+	info.dw[0] = uint32(val & 0xffffffff)
+	info.dw[1] = uint32(val >> 32)
 }
 
 // Print GPIO group title to file
@@ -62,8 +64,8 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 	fmt.Fprintf(gpio,
 		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
 		info.id,
-		info.data.dw[0],
-		(info.data.dw[1] & 0xffffff00), // Interrupt Select - RO
+		info.dw[0],
+		(info.dw[1] & 0xffffff00), // Interrupt Select - RO
 		info.function)
 }
 
@@ -72,9 +74,9 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 // gpio : gpio.c file descriptor
 func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n\t%s\n",
-			info.id,
-			info.function,
-			getMacro(info.id, &info.data))
+		info.id,
+		info.function,
+		sunrise.GetMacro(info.id, info.dw[0], info.dw[1]))
 }
 
 // InteltoolData
@@ -101,7 +103,7 @@ func (inteltool *InteltoolData) PadMapFprint(gpio *os.File, raw bool) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
 	for _, pad := range inteltool.padmap {
-		switch pad.data.dw[0] {
+		switch pad.dw[0] {
 		case 0:
 			pad.TitleFprint(gpio)
 		case 0xffffffff:
@@ -155,8 +157,7 @@ func (inteltool *InteltoolData) Parse(logFile string) (err error) {
 	for scanner.Scan() {
 		line = scanner.Text()
 		// Use only the string that contains the GPP information
-		if !strings.Contains(line, "GPP_") &&
-			!strings.Contains(line, "GPD") {
+		if !strings.Contains(line, "GPP_") && !strings.Contains(line, "GPD") {
 			continue
 		}
 		inteltool.AddEntry(line)
@@ -236,6 +237,7 @@ func CreateGpioFile(inteltool *InteltoolData, showRawDataFlag bool) (err error) 
 	return nil
 }
 
+// main
 func main() {
 	// Command line arguments
 	wordPtr := flag.String("file",
