@@ -7,12 +7,12 @@ import (
 
 type macro struct {
 	padID string
-	dw    *сonfigData
 	str   string
+	cfgDW cfgDW
 }
 
-func (macro *macro) getData() *сonfigData {
-	return macro.dw
+func (macro *macro) getDW() *cfgDW {
+	return &macro.cfgDW
 }
 
 func (macro *macro) add(str string) *macro {
@@ -53,7 +53,7 @@ func (macro *macro) rstsrc() *macro {
 		0x1: "DEEP",
 		0x2: "PLTRST",
 	}
-	str, valid := resetSrc[macro.getData().getResetConfig()]
+	str, valid := resetSrc[macro.getDW().getResetConfig()]
 	if !valid {
 		// 3h = Reserved (implement as setting 0h) for Sunrice PCH
 		str = resetSrc[0]
@@ -78,13 +78,13 @@ func (macro *macro) pull() *macro {
 		0xc: "20K_PU",
 		0xd: "667_PU",
 		0xf: "NATIVE"}
-	str, valid := pull[macro.getData().getTermination()]
+	str, valid := pull[macro.getDW().getTermination()]
 	if !valid {
 		str = "INVALID"
 		fmt.Println("Error",
 			macro.padID,
 			" invalid TERM value = ",
-			int(macro.getData().getTermination()))
+			int(macro.getDW().getTermination()))
 	}
 	return macro.separator().add(str)
 }
@@ -92,13 +92,13 @@ func (macro *macro) pull() *macro {
 // Adds Pad GPO value to macro string as a new argument
 // return: macro
 func (macro *macro) val() *macro {
-	return macro.separator().add(strconv.Itoa(macro.getData().getGPIOTXState()))
+	return macro.separator().add(strconv.Itoa(macro.getDW().getGPIOTXState()))
 }
 
 // Adds Pad GPO value to macro string as a new argument
 // return: macro
 func (macro *macro) trig() *macro {
-	var dw = macro.getData()
+	var dw = macro.getDW()
 	var trig = map[uint8]string{
 		0x0: "LEVEL",
 		0x1: "EDGE_SINGLE",
@@ -112,7 +112,7 @@ func (macro *macro) trig() *macro {
 // return: macro
 func (macro *macro) invert() *macro {
 	macro.separator()
-	if macro.getData().getRXLevelConfiguration() {
+	if macro.getDW().getRXLevelConfiguration() {
 		macro.add("YES")
 	} else {
 		macro.add("NONE")
@@ -129,14 +129,14 @@ func (macro *macro) bufdis() *macro {
 		0x2: "RX_DISABLE",    // input buffer is disabled
 		0x3: "TX_RX_DISABLE", // both buffers are disabled
 	}
-	state := macro.getData().getGPIORxTxDisableStatus()
+	state := macro.getDW().getGPIORxTxDisableStatus()
 	return macro.separator().add(buffDisStat[state])
 }
 
 //Adds pad native function (PMODE) as a new argument
 //return: macro
 func (macro *macro) padfn() *macro {
-	nfnum := int(macro.getData().getPadMode())
+	nfnum := int(macro.getDW().getPadMode())
 	if nfnum != 0 {
 		return macro.separator().add("NF" + strconv.Itoa(nfnum))
 	}
@@ -146,7 +146,7 @@ func (macro *macro) padfn() *macro {
 
 // Adds suffix to GPI macro with arguments
 func (macro *macro) addSuffixInput() {
-	dw := macro.getData()
+	dw := macro.getDW()
 	isEdge := dw.getRXLevelEdgeConfiguration()
 	macro.add("_GPI")
 	switch {
@@ -208,7 +208,7 @@ func (macro *macro) addSuffixInput() {
 
 // Adds suffix to GPO macro with arguments
 func (macro *macro) addSuffixOutput() {
-	term := macro.getData().getTermination()
+	term := macro.getDW().getTermination()
 	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
@@ -222,7 +222,7 @@ func (macro *macro) addSuffixOutput() {
 
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 	// See https://github.com/coreboot/coreboot/commit/3820e3c
-	macro.getData().maskTrigFix()
+	macro.getDW().maskTrigFix()
 }
 
 const (
@@ -239,7 +239,7 @@ func (macro *macro) common() *macro {
 
 	var str string
 	var argument = true
-	switch dw := macro.getData(); {
+	switch dw := macro.getDW(); {
 	case dw.getGPIOInputRouteIOxAPIC():
 		str = "IOAPIC"
 	case dw.getGPIOInputRouteSCI():
@@ -259,7 +259,7 @@ func (macro *macro) common() *macro {
 	}
 
 	macro.add(" |\n\t\t").add("PAD_BUF(").bufdis().add(")")
-	if macro.getData().getGPIOTXState() != 0 {
+	if macro.getDW().getGPIOTXState() != 0 {
 		macro.add(" | 1")
 	}
 	return macro.add(",\n\t\tPAD_PULL(").pull().add(")),")
@@ -267,7 +267,7 @@ func (macro *macro) common() *macro {
 
 // Check created macro
 func (macro *macro) check() {
-	if !macro.getData().maskCheck(0) {
+	if !macro.getDW().maskCheck(0) {
 		macro.common()
 		// Debug message about this
 		fmt.Printf(
@@ -281,7 +281,7 @@ func (macro *macro) check() {
 // return: string of macro
 //         error
 func (macro *macro) getBase() string {
-	dw := macro.getData()
+	dw := macro.getDW()
 	macro.set("PAD_CFG")
 	if dw.getPadMode() == 0 {
 		// GPIO
@@ -301,7 +301,7 @@ func (macro *macro) getBase() string {
 			// and Pad Reset Config (PADRSTCFG)
 			// There is no need to check these fields if the pad
 			// is in the NC state
-			macro.getData().maskResetFix().maskTrigFix()
+			macro.getDW().maskResetFix().maskTrigFix()
 
 		default:
 			// In case the rule isn't found, a common macro is used
@@ -329,14 +329,14 @@ func (macro *macro) getBase() string {
 }
 
 // GetMacro - get pad macro
+// dw0 : DW0 config register value
+// dw1 : DW1 config register value
 // return: string of macro
 //         error
 func GetMacro(padID string, dw0 uint32, dw1 uint32) string {
 	var macro macro
-	var cfg сonfigData
-	cfg.dw[0] = dw0
-	cfg.dw[1] = dw1
 	macro.padID = padID
-	macro.dw = &cfg
+	macro.cfgDW.reg[0] = dw0
+	macro.cfgDW.reg[1] = dw1
 	return macro.getBase()
 }

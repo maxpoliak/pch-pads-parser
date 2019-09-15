@@ -46,19 +46,25 @@ const (
 	INTSEL_MASK uint32 = 0xFF
 )
 
+// Maximum numbers of the config DW register for Sunrise chipset
 const (
-	MAX_DW = 2
+	MaxDWNum = 2
 )
 
-type сonfigData struct {
-	dw   [MAX_DW]uint32
-	mask [MAX_DW]uint32
+type cfgDW struct {
+	reg  [MaxDWNum]uint32
+	mask [MaxDWNum]uint32
 }
 
-func (data *сonfigData) getFieldVal(regNum uint8, mask uint32, shift uint8) uint8 {
-	if regNum < MAX_DW {
+// getFieldVal - get bit fields value in pad config DW register
+// regNum : DW register number
+// mask   : bit field mask
+// shift  : shift of the bit field mask in 32-bit DW register
+// Returns true if the macro is generated correctly
+func (data *cfgDW) getFieldVal(regNum uint8, mask uint32, shift uint8) uint8 {
+	if regNum < MaxDWNum {
 		data.mask[regNum] |= mask
-		return uint8((data.dw[regNum] & mask) >> shift)
+		return uint8((data.reg[regNum] & mask) >> shift)
 	}
 	return 0
 }
@@ -66,30 +72,30 @@ func (data *сonfigData) getFieldVal(regNum uint8, mask uint32, shift uint8) uin
 // Check the mask of the new macro
 // regNum : DW register number
 // Returns true if the macro is generated correctly
-func (data *сonfigData) maskCheck(regNum uint8) bool {
-	if regNum >= MAX_DW {
+func (data *cfgDW) maskCheck(regNum uint8) bool {
+	if regNum >= MaxDWNum {
 		return false
 	}
 
 	// Take into account the bits that are read-only
-	readonly := [MAX_DW]uint32{
+	readonly := [MaxDWNum]uint32{
 		(0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe,
 		0xfffffc3f,
 	}
 	mask := ^(data.mask[regNum] | readonly[regNum])
-	return data.dw[regNum]&mask == 0
+	return data.reg[regNum]&mask == 0
 }
 
 // Fix Pad Reset Config field in mask for DW0 register
-// Returns *сonfigData
-func (data *сonfigData) maskResetFix() *сonfigData {
+// Returns *cfgDW
+func (data *cfgDW) maskResetFix() *cfgDW {
 	data.mask[0] |= PADRSTCFG_MASK
 	return data
 }
 
 // Fix RX Level/Edge Configuration field in mask for DW0 register
-// Returns *сonfigData
-func (data *сonfigData) maskTrigFix() *сonfigData {
+// Returns *cfgDW
+func (data *cfgDW) maskTrigFix() *cfgDW {
 	data.mask[0] |= RXEVCFG_MASK
 	return data
 }
@@ -107,7 +113,7 @@ entry.
 10 = PLTRST#
 11 = Reserved
 */
-func (data *сonfigData) getResetConfig() uint8 {
+func (data *cfgDW) getResetConfig() uint8 {
 	return data.getFieldVal(0, PADRSTCFG_MASK, PADRSTCFG_SHIFT)
 }
 
@@ -119,7 +125,7 @@ if the pad is in GPIO mode (i.e. Pad Mode = 0)
 0 = Raw RX pad state directly from RX buffer
 1 = Internal RX pad state (subject to RXINV and PreGfRXSel settings)
 */
-func (data *сonfigData) getRXPadStateSelect() uint8 {
+func (data *cfgDW) getRXPadStateSelect() uint8 {
 	return data.getFieldVal(0, RXPADSTSEL_MASK, RXPADSTSEL_SHIFT)
 }
 
@@ -132,7 +138,7 @@ buffer and before the RXINV
 0 = No Override
 1 = RX drive 1 internally
 */
-func (data *сonfigData) getRXRawOverrideStatus() uint8 {
+func (data *cfgDW) getRXRawOverrideStatus() uint8 {
 	return data.getFieldVal(0, RXRAW1_MASK, RXRAW1_SHIFT)
 }
 
@@ -149,12 +155,12 @@ Community Controller
 2h = Drive '0'
 3h = Reserved (implement as setting 0h)
 */
-func (data *сonfigData) getRXLevelEdgeConfiguration() uint8 {
+func (data *cfgDW) getRXLevelEdgeConfiguration() uint8 {
 	return data.getFieldVal(0, RXEVCFG_MASK, RXEVCFG_SHIFT)
 }
 
 /*
-RX Invert (RXINV): This bit determines if the selected pad state should
+RX Invert (RсonfigDataXINV): This bit determines if the selected pad state should
 go through the polarity inversion stage. This field is only applicable when
 the RX buffer is configured as an input in either GPIO Mode or native
 function mode. The polarity inversion takes place at the mux node of raw vs
@@ -167,7 +173,7 @@ cause IRQ, SMI#, SCI or NMI
 0 = No inversion
 1 = Inversion
 */
-func (data *сonfigData) getRXLevelConfiguration() bool {
+func (data *cfgDW) getRXLevelConfiguration() bool {
 	return data.getFieldVal(0, RXINV_MASK, RXINV_SHIFT) != 0
 }
 
@@ -181,7 +187,7 @@ Note: This bit does not affect any interrupt status bit within GPIO, but
 is used as the last qualifier for the peripheral IRQ indication to the
 intended recipient(s).
 */
-func (data *сonfigData) getGPIOInputRouteIOxAPIC() bool {
+func (data *cfgDW) getGPIOInputRouteIOxAPIC() bool {
 	return data.getFieldVal(0, GPIROUTIOXAPIC_MASK, GPIROUTIOXAPIC_SHIFT) != 0
 }
 
@@ -195,7 +201,7 @@ Note: This bit does not affect any interrupt status bit within GPIO, but is
 used as the last qualifier for the GPE indication to the intended
 recipient(s).
 */
-func (data *сonfigData) getGPIOInputRouteSCI() bool {
+func (data *cfgDW) getGPIOInputRouteSCI() bool {
 	return data.getFieldVal(0, GPIROUTSCI_MASK, GPIROUTSCI_SHIFT) != 0
 }
 
@@ -205,7 +211,7 @@ to cause SMI when configured in GPIO input mode
 This bit only applies to a GPIO that has SMI capability.
 Otherwise, the bit is RO.
 */
-func (data *сonfigData) getGPIOInputRouteSMI() bool {
+func (data *cfgDW) getGPIOInputRouteSMI() bool {
 	return data.getFieldVal(0, GPIROUTSMI_MASK, GPIROUTSMI_SHIFT) != 0
 }
 
@@ -215,7 +221,7 @@ to cause NMI when configured in GPIO input mode
 This bit only applies to a GPIO that has NMI capability. Otherwise, the
 bit is RO.
 */
-func (data *сonfigData) getGPIOInputRouteNMI() bool {
+func (data *cfgDW) getGPIOInputRouteNMI() bool {
 	return data.getFieldVal(0, GPIROUTNMI_MASK, GPIROUTNMI_SHIFT) != 0
 }
 
@@ -234,7 +240,7 @@ field If GPIO vs. native mode is configured via soft strap, this bit has
 no effect. Default value is determined by the default functionality of the
 pad.
 */
-func (data *сonfigData) getPadMode() uint8 {
+func (data *cfgDW) getPadMode() uint8 {
 	return data.getFieldVal(0, PMODE_MASK, PMODE_SHIFT)
 }
 
@@ -250,7 +256,7 @@ enable) of the pad.
 
 1 = Disable the output buffer of the pad; i.e. Hi-Z
 */
-func (data *сonfigData) getGPIORxTxDisableStatus() uint8 {
+func (data *cfgDW) getGPIORxTxDisableStatus() uint8 {
 	return data.getFieldVal(0, GPIORXTXDIS_MASK, GPIORXTXDIS_SHIFT)
 }
 
@@ -259,7 +265,7 @@ GPIO RX State (GPIORXSTATE): This is the current internal RX pad
 state after Glitch Filter logic stage and is not affected by PMode and
 RXINV settings.
 */
-func (data *сonfigData) getGPIORXState() uint8 {
+func (data *cfgDW) getGPIORXState() uint8 {
 	return data.getFieldVal(0, GPIORXSTATE_MASK, GPIORXSTATE_SHIFT)
 }
 
@@ -268,7 +274,7 @@ GPIO TX State (GPIOTXSTATE):
 0 = Drive a level '0' to the TX output pad.
 1 = Drive a level '1' to the TX output pad
 */
-func (data *сonfigData) getGPIOTXState() int {
+func (data *cfgDW) getGPIOTXState() int {
 	return int(data.getFieldVal(0, GPIOTXSTATE_MASK, 0))
 }
 
@@ -297,7 +303,7 @@ depending on the native functions involved. For example, before changing
 the pad from output to input direction, PU/PD settings should be programmed
 first to ensure the input does not float momentarily.
 */
-func (data *сonfigData) getTermination() uint8 {
+func (data *cfgDW) getTermination() uint8 {
 	return data.getFieldVal(1, TERM_MASK, TERM_SHIFT)
 }
 
@@ -310,6 +316,6 @@ on this pad.
 ...
 Up to the max IOxAPIC IRQ supported
 */
-func (data *сonfigData) getInterruptSelect() uint8 {
+func (data *cfgDW) getInterruptSelect() uint8 {
 	return data.getFieldVal(1, INTSEL_MASK, 0)
 }
