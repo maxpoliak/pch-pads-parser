@@ -10,21 +10,18 @@ import (
 
 import "./sunrise"
 
-// Maximum numbers of the config DW register
-const (
-	MaxDWNum = 2
-)
-
 // padInfo - information about pad
 // id       : pad id string
 // offset   : the offset of the register address relative to the base
 // function : the string that means the pad function
-// data     : dw configuration register data
+// dw0      : DW0 register value
+// dw1      : DW1 register value
 type padInfo struct {
 	id       string
 	offset   uint16
 	function string
-	dw       [MaxDWNum]uint32
+	dw0      uint32
+	dw1      uint32
 }
 
 // Add - add information about pad to data structure
@@ -45,8 +42,8 @@ func (info *padInfo) Add(line string) {
 		&val,
 		&info.id,
 		&info.function)
-	info.dw[0] = uint32(val & 0xffffffff)
-	info.dw[1] = uint32(val >> 32)
+	info.dw0 = uint32(val & 0xffffffff)
+	info.dw1 = uint32(val >> 32)
 }
 
 // TitleFprint - print GPIO group title to file
@@ -70,8 +67,8 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 	fmt.Fprintf(gpio,
 		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
 		info.id,
-		info.dw[0],
-		(info.dw[1] & 0xffffff00), // Interrupt Select - RO
+		info.dw0,
+		(info.dw1 & 0xffffff00), // Interrupt Select - RO
 		info.function)
 }
 
@@ -83,7 +80,7 @@ func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n\t%s\n",
 		info.id,
 		info.function,
-		sunrise.GetMacro(info.id, info.dw[0], info.dw[1]))
+		sunrise.GetMacro(info.id, info.dw0, info.dw1))
 }
 
 // InteltoolData - global data
@@ -110,7 +107,7 @@ func (inteltool *InteltoolData) PadMapFprint(gpio *os.File, raw bool) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
 	for _, pad := range inteltool.padmap {
-		switch pad.dw[0] {
+		switch pad.dw0 {
 		case 0:
 			pad.TitleFprint(gpio)
 		case 0xffffffff:
