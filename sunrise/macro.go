@@ -226,8 +226,8 @@ func (macro *macro) addSuffixOutput() {
 }
 
 const (
-	RX_DIS uint8 = 0x2
-	TX_DIS uint8 = 0x1
+	rxDisable uint8 = 0x2
+	txDisable uint8 = 0x1
 )
 
 // Set common macros macros if the standard ones can't define the values from
@@ -286,15 +286,15 @@ func (macro *macro) getBase() string {
 	if dw.getPadMode() == 0 {
 		// GPIO
 		switch dw.getGPIORxTxDisableStatus() {
-		case TX_DIS:
+		case rxDisable:
 			// GPI
 			macro.addSuffixInput()
 
-		case RX_DIS:
+		case txDisable:
 			// GPO
 			macro.addSuffixOutput()
 
-		case RX_DIS | TX_DIS:
+		case rxDisable | txDisable:
 			// NC
 			macro.set("PAD_NC").add("(").id().pull()
 			// Fix mask for RX Level/Edge Configuration (RXEVCFG)
