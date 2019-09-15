@@ -10,6 +10,11 @@ import (
 
 import "./sunrise"
 
+// Maximum numbers of the config DW register
+const (
+	MaxDWNum = 2
+)
+
 // padInfo - information about pad
 // id       : pad id string
 // offset   : the offset of the register address relative to the base
@@ -19,7 +24,7 @@ type padInfo struct {
 	id       string
 	offset   uint16
 	function string
-	dw       [sunrise.MAX_DW]uint32
+	dw       [MaxDWNum]uint32
 }
 
 // Add - add information about pad to data structure
