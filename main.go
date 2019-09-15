@@ -10,7 +10,7 @@ import (
 
 import "./sunrise"
 
-// Information about pad
+// padInfo - information about pad
 // id       : pad id string
 // offset   : the offset of the register address relative to the base
 // function : the string that means the pad function
@@ -22,7 +22,7 @@ type padInfo struct {
 	dw       [sunrise.MAX_DW]uint32
 }
 
-// Add information about pad to data structure
+// Add - add information about pad to data structure
 // line : string from inteltool log file
 func (info *padInfo) Add(line string) {
 	var val uint64
@@ -44,20 +44,21 @@ func (info *padInfo) Add(line string) {
 	info.dw[1] = uint32(val >> 32)
 }
 
-// Print GPIO group title to file
+// TitleFprint - print GPIO group title to file
 // gpio : gpio.c file descriptor
 func (info *padInfo) TitleFprint(gpio *os.File) {
 	fmt.Fprintf(gpio, "\n\t/* %s */\n", info.function)
 }
 
-// Print Reserved GPIO to file as comment
+// ReservedFprint - print reserved GPIO to file as comment
 // gpio : gpio.c file descriptor
 func (info *padInfo) ReservedFprint(gpio *os.File) {
 	// small comment about reserved port
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 }
 
-// Print information about current pad to file using raw format:
+// FprintPadInfoRaw - print information about current pad to file using
+// raw format:
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
 func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
@@ -69,7 +70,8 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 		info.function)
 }
 
-// Print information about current pad to file using special macros:
+// FprintPadInfoMacro - print information about current pad to file using
+// special macros:
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
 func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
@@ -79,7 +81,7 @@ func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
 		sunrise.GetMacro(info.id, info.dw[0], info.dw[1]))
 }
 
-// InteltoolData
+// InteltoolData - global data
 // padmap  : pad info map
 // dbgFlag : gebug flag, currently not used
 type InteltoolData struct {
@@ -87,7 +89,7 @@ type InteltoolData struct {
 	dbgFlag bool
 }
 
-// Adds a new entry to pad info map
+// AddEntry - adds a new entry to pad info map
 // line - string/line from the inteltool log file
 func (inteltool *InteltoolData) AddEntry(line string) {
 	var pad padInfo
@@ -95,7 +97,7 @@ func (inteltool *InteltoolData) AddEntry(line string) {
 	inteltool.padmap = append(inteltool.padmap, pad)
 }
 
-// Print pad info map to file
+// PadMapFprint - print pad info map to file
 // gpio : gpio.c descriptor file
 // raw  : in the case when this flag is false, pad information will be print
 //        as macro
@@ -166,7 +168,7 @@ func (inteltool *InteltoolData) Parse(logFile string) (err error) {
 	return nil
 }
 
-// HdrInfoAdd adds license header to file
+// HdrInfoAdd - adds license header to file f
 func HdrInfoAdd(f *os.File) {
 	f.WriteString(`/*
  * This file is part of the coreboot project.
@@ -185,7 +187,7 @@ func HdrInfoAdd(f *os.File) {
 `)
 }
 
-// Generates include file
+// CreateHdrFile - generates include file
 func CreateHdrFile() (err error) {
 	hrdFile, err := os.Create("generate/gpio.h")
 	if err != nil {
@@ -209,7 +211,7 @@ const struct pad_config *get_early_gpio_table(size_t *num);
 	return nil
 }
 
-// Generates gpio_raw.c file
+// CreateGpioFile - generates gpio_raw.c file
 // inteltool       : inteltool data structure
 // showRawDataFlag : raw data flag
 //                   in the case when this flag is false, pad information will
