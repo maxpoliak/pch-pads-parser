@@ -82,30 +82,30 @@ func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
 		sunrise.GetMacro(info.id, info.dw0, info.dw1))
 }
 
-// InteltoolData - global data
+// ParserData - global data
 // padmap  : pad info map
 // dbgFlag : gebug flag, currently not used
-type InteltoolData struct {
+type ParserData struct {
 	padmap  []padInfo
 	DbgFlag bool
 }
 
 // AddEntry - adds a new entry to pad info map
 // line - string/line from the inteltool log file
-func (inteltool *InteltoolData) AddEntry(line string) {
+func (parser *ParserData) AddEntry(line string) {
 	var pad padInfo
 	pad.Add(line)
-	inteltool.padmap = append(inteltool.padmap, pad)
+	parser.padmap = append(parser.padmap, pad)
 }
 
 // PadMapFprint - print pad info map to file
 // gpio : gpio.c descriptor file
 // raw  : in the case when this flag is false, pad information will be print
 //        as macro
-func (inteltool *InteltoolData) PadMapFprint(gpio *os.File, raw bool) {
+func (parser *ParserData) PadMapFprint(gpio *os.File, raw bool) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
-	for _, pad := range inteltool.padmap {
+	for _, pad := range parser.padmap {
 		switch pad.dw0 {
 		case 0:
 			pad.TitleFprint(gpio)
@@ -146,7 +146,7 @@ const struct pad_config *get_early_gpio_table(size_t *num)
 // logFile : name of inteltool log file
 // return
 // err : error
-func (inteltool *InteltoolData) Parse(logFile string) (err error) {
+func (parser *ParserData) Parse(logFile string) (err error) {
 	file, err := os.Open(logFile)
 	if err != nil {
 		return err
@@ -163,7 +163,7 @@ func (inteltool *InteltoolData) Parse(logFile string) (err error) {
 		if !strings.Contains(line, "GPP_") && !strings.Contains(line, "GPD") {
 			continue
 		}
-		inteltool.AddEntry(line)
+		parser.AddEntry(line)
 	}
 	fmt.Println("...done!")
 	return nil

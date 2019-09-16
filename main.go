@@ -51,11 +51,11 @@ const struct pad_config *get_early_gpio_table(size_t *num);
 }
 
 // CreateGpioFile - generates gpio_raw.c file
-// inteltool       : inteltool data structure
+// parser          : parser data structure
 // showRawDataFlag : raw data flag
 //                   in the case when this flag is false, pad information will
 //                   be create as macro
-func CreateGpioFile(inteltool *parser.InteltoolData, showRawDataFlag bool) (err error) {
+func CreateGpioFile(parser *parser.ParserData, showRawDataFlag bool) (err error) {
 	var name = "generate/gpio"
 	if showRawDataFlag {
 		name += "_raw"
@@ -74,7 +74,7 @@ func CreateGpioFile(inteltool *parser.InteltoolData, showRawDataFlag bool) (err 
 #include "include/gpio.h"
 `)
 	// Add the pads map to gpio.h file
-	inteltool.PadMapFprint(gpio, showRawDataFlag)
+	parser.PadMapFprint(gpio, showRawDataFlag)
 	return nil
 }
 
@@ -90,9 +90,9 @@ func main() {
 	fmt.Println("dbg:", *dbgPtr)
 	fmt.Println("file:", *wordPtr)
 
-	var inteltool parser.InteltoolData
-	inteltool.DbgFlag = *dbgPtr
-	err := inteltool.Parse(*wordPtr)
+	var parser parser.ParserData
+	parser.DbgFlag = *dbgPtr
+	err := parser.Parse(*wordPtr)
 	if err != nil {
 		fmt.Printf("Parser: Error!\n")
 		os.Exit(1)
@@ -113,14 +113,14 @@ func main() {
 	}
 
 	// gpio_raw.c
-	err = CreateGpioFile(&inteltool, true)
+	err = CreateGpioFile(&parser, true)
 	if err != nil {
 		fmt.Printf("Create gpio_raw.c: Error!\n")
 		os.Exit(1)
 	}
 
 	// gpio.c with macros
-	err = CreateGpioFile(&inteltool, false)
+	err = CreateGpioFile(&parser, false)
 	if err != nil {
 		fmt.Printf("Create gpio.c: Error!\n")
 		os.Exit(1)
