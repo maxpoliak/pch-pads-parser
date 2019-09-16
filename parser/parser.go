@@ -16,20 +16,22 @@ import "../sunrise"
 // dw0      : DW0 register value
 // dw1      : DW1 register value
 type padInfo struct {
-	id       string
-	offset   uint16
-	function string
-	dw0      uint32
-	dw1      uint32
+	id        string
+	offset    uint16
+	function  string
+	community uint8
+	dw0       uint32
+	dw1       uint32
 }
 
-// Add - add information about pad to data structure
+// add - add information about pad to data structure
 // line : string from inteltool log file
-func (info *padInfo) Add(line string) {
+func (info *padInfo) add(line string) {
 	var val uint64
-	// ------- GPIO Group GPP_A -------
 	if strings.HasPrefix(line, "----") {
-		// Add header to define GPIO group
+		// ------- GPIO Group GPP_A -------
+		// ------- GPIO Community 0 -------
+		// Add header to define GPIO group or community
 		info.function = line
 		return
 	}
@@ -90,11 +92,13 @@ type ParserData struct {
 	DbgFlag bool
 }
 
-// AddEntry - adds a new entry to pad info map
-// line - string/line from the inteltool log file
-func (parser *ParserData) AddEntry(line string) {
+// padInfoAdd - adds a new entry to pad info map
+// line      : string/line from the inteltool log file
+// community : pads community number
+func (parser *ParserData) padInfoAdd(line string, community uint8) {
 	var pad padInfo
-	pad.Add(line)
+	pad.community = community;
+	pad.add(line)
 	parser.padmap = append(parser.padmap, pad)
 }
 
@@ -142,6 +146,16 @@ const struct pad_config *get_early_gpio_table(size_t *num)
 `)
 }
 
+// getCommunity - scans the string and returns the pads community number
+// line   : string from inteltool log file
+// return
+// community number
+func (parser *ParserData) getCommunity(line string) uint8 {
+	var comm uint8
+	fmt.Sscanf(line, "------- GPIO Community %d -------", &comm)
+	return comm
+}
+
 // Parse pads groupe information in the inteltool log file
 // logFile : name of inteltool log file
 // return
@@ -157,13 +171,19 @@ func (parser *ParserData) Parse(logFile string) (err error) {
 	fmt.Println("Parse IntelTool Log File...")
 	scanner := bufio.NewScanner(file)
 	var line string
+	var community uint8 = 0
 	for scanner.Scan() {
 		line = scanner.Text()
 		// Use only the string that contains the GPP information
 		if !strings.Contains(line, "GPP_") && !strings.Contains(line, "GPD") {
-			continue
+			// ------- GPIO Community 0 -------
+			if strings.Contains(line, "Community") {
+				community = parser.getCommunity(line)
+			} else {
+				continue
+			}
 		}
-		parser.AddEntry(line)
+		parser.padInfoAdd(line, community)
 	}
 	fmt.Println("...done!")
 	return nil
