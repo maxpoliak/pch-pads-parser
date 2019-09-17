@@ -47,24 +47,24 @@ func (info *padInfo) add(line string) {
 	info.dw1 = uint32(val >> 32)
 }
 
-// TitleFprint - print GPIO group title to file
+// titleFprint - print GPIO group title to file
 // gpio : gpio.c file descriptor
-func (info *padInfo) TitleFprint(gpio *os.File) {
+func (info *padInfo) titleFprint(gpio *os.File) {
 	fmt.Fprintf(gpio, "\n\t/* %s */\n", info.function)
 }
 
-// ReservedFprint - print reserved GPIO to file as comment
+// reservedFprint - print reserved GPIO to file as comment
 // gpio : gpio.c file descriptor
-func (info *padInfo) ReservedFprint(gpio *os.File) {
+func (info *padInfo) reservedFprint(gpio *os.File) {
 	// small comment about reserved port
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 }
 
-// FprintPadInfoRaw - print information about current pad to file using
+// padInfoRawFprint - print information about current pad to file using
 // raw format:
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
-func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
+func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 	fmt.Fprintf(gpio,
 		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
 		info.id,
@@ -73,11 +73,11 @@ func (info *padInfo) FprintPadInfoRaw(gpio *os.File) {
 		info.function)
 }
 
-// FprintPadInfoMacro - print information about current pad to file using
+// padInfoMacroFprint - print information about current pad to file using
 // special macros:
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
-func (info *padInfo) FprintPadInfoMacro(gpio *os.File) {
+func (info *padInfo) padInfoMacroFprint(gpio *os.File) {
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n\t%s\n",
 		info.id,
 		info.function,
@@ -102,6 +102,16 @@ func (parser *ParserData) padInfoAdd(line string, community uint8) {
 	parser.padmap = append(parser.padmap, pad)
 }
 
+// getCommunity - scans the string and returns the pads community number
+// line   : string from inteltool log file
+// return
+// community number
+func (parser *ParserData) getCommunity(line string) uint8 {
+	var comm uint8
+	fmt.Sscanf(line, "------- GPIO Community %d -------", &comm)
+	return comm
+}
+
 // PadMapFprint - print pad info map to file
 // gpio : gpio.c descriptor file
 // raw  : in the case when this flag is false, pad information will be print
@@ -112,14 +122,14 @@ func (parser *ParserData) PadMapFprint(gpio *os.File, raw bool) {
 	for _, pad := range parser.padmap {
 		switch pad.dw0 {
 		case 0:
-			pad.TitleFprint(gpio)
+			pad.titleFprint(gpio)
 		case 0xffffffff:
-			pad.ReservedFprint(gpio)
+			pad.reservedFprint(gpio)
 		default:
 			if raw {
-				pad.FprintPadInfoRaw(gpio)
+				pad.padInfoRawFprint(gpio)
 			} else {
-				pad.FprintPadInfoMacro(gpio)
+				pad.padInfoMacroFprint(gpio)
 			}
 		}
 	}
@@ -144,16 +154,6 @@ const struct pad_config *get_early_gpio_table(size_t *num)
 }
 
 `)
-}
-
-// getCommunity - scans the string and returns the pads community number
-// line   : string from inteltool log file
-// return
-// community number
-func (parser *ParserData) getCommunity(line string) uint8 {
-	var comm uint8
-	fmt.Sscanf(line, "------- GPIO Community %d -------", &comm)
-	return comm
 }
 
 // Parse pads groupe information in the inteltool log file
