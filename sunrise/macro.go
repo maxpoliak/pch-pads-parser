@@ -280,8 +280,12 @@ func (macro *macro) check() {
 // Gets base string of current macro
 // return: string of macro
 //         error
-func (macro *macro) getBase() string {
-	dw := macro.getDW()
+func (macro *macro) generate(id string, dw0 uint32, dw1 uint32) string {
+	macro.padID = id
+	macro.cfgDW.reg[0] = dw0
+	macro.cfgDW.reg[1] = dw1
+	dw := &macro.cfgDW
+
 	macro.set("PAD_CFG")
 	if dw.getPadMode() == 0 {
 		// GPIO
@@ -335,8 +339,5 @@ func (macro *macro) getBase() string {
 //         error
 func GetMacro(padID string, dw0 uint32, dw1 uint32) string {
 	var macro macro
-	macro.padID = padID
-	macro.cfgDW.reg[0] = dw0
-	macro.cfgDW.reg[1] = dw1
-	return macro.getBase()
+	return macro.generate(padID, dw0, dw1)
 }
