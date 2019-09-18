@@ -116,7 +116,7 @@ Host reset (with or without power cycle) is initiated, Global reset is
 initiated, or Deep Sx entry. This reset does NOT occur as part of S3/S4/S5
 entry.
 10 = PLTRST#
-11 = Reserved
+11 = RSMRST# for GPDx pads and Reserved for others
 */
 func (data *cfgDW) getResetConfig() uint8 {
 	return data.getFieldVal(0, padRstCfgMask, padRstCfgShift)

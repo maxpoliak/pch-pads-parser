@@ -3,6 +3,7 @@ package sunrise
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type macro struct {
@@ -55,12 +56,16 @@ func (macro *macro) rstsrc() *macro {
 	}
 	str, valid := resetSrc[macro.getDW().getResetConfig()]
 	if !valid {
-		// 3h = Reserved (implement as setting 0h) for Sunrice PCH
-		str = resetSrc[0]
-		fmt.Println("Warning:",
-			macro.padID,
-			"PADRSTCFG = 3h Reserved")
-		fmt.Println("It is implemented as setting 0h (PWROK) for Sunrise PCH")
+		// Pad Reset Config field in DW0 register should implements 3h value
+		// as RSMRST for GPD pads group, but this value is reserved for other
+		// groups
+		if strings.Contains(macro.padID, "GPD") {
+			str = "RSMRST"
+		} else {
+			str = resetSrc[0]
+			fmt.Println("Warning:", macro.padID, "PADRSTCFG = 3h Reserved")
+			fmt.Println("It is implemented as setting 0h (PWROK) for Sunrise PCH")
+		}
 	}
 	return macro.separator().add(str)
 }
