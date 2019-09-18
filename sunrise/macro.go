@@ -118,11 +118,9 @@ func (macro *macro) trig() *macro {
 func (macro *macro) invert() *macro {
 	macro.separator()
 	if macro.getDW().getRXLevelConfiguration() {
-		macro.add("YES")
-	} else {
-		macro.add("NONE")
+		return macro.add("YES")
 	}
-	return macro
+	return macro.add("NONE")
 }
 
 // Adds input/output buffer state
