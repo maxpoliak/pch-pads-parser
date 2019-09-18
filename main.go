@@ -4,8 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"./parser"
 )
+
+import "./parser"
 
 // HdrInfoAdd - adds license header to file f
 func HdrInfoAdd(f *os.File) {
