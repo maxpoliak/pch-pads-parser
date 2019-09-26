@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+// macro - contains macro information and methods
+// padID : pad ID string
+// str   : macro string entirely
+// dwcfg : configuration data structure
 type macro struct {
 	padID string
 	str   string

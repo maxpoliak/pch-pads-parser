@@ -53,7 +53,7 @@ const (
 	MaxDWNum = 2
 )
 
-// dwcfg - information about pad
+// dwcfg - configuration data structure based on DW0/1 reg value
 // reg   : register value
 // mask  : bit fileds mask
 type dwcfg struct {
