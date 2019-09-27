@@ -16,11 +16,11 @@ import "../sunrise"
 // dw0      : DW0 register value
 // dw1      : DW1 register value
 type padInfo struct {
-	id        string
-	offset    uint16
-	function  string
-	dw0       uint32
-	dw1       uint32
+	id       string
+	offset   uint16
+	function string
+	dw0      uint32
+	dw1      uint32
 }
 
 // add - add information about pad to data structure
@@ -173,7 +173,7 @@ func (parser *ParserData) Parse(logFile string) (err error) {
 		line = scanner.Text()
 		// Use only the string that contains the GPP information
 		if !strings.Contains(line, "GPP_") && !strings.Contains(line, "GPD") {
-				continue
+			continue
 		}
 		parser.padInfoAdd(line)
 	}

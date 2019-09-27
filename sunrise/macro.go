@@ -345,6 +345,6 @@ func (macro *macro) generate() string {
 // return: string of macro
 //         error
 func GetMacro(id string, dw0 uint32, dw1 uint32) string {
-	macro := macro{ padID: id, dwcfg: dwcfg{ reg: [MaxDWNum]uint32{dw0, dw1} } }
+	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}}
 	return macro.generate()
 }
