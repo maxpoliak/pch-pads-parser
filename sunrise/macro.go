@@ -91,7 +91,8 @@ func (macro *macro) pull() *macro {
 		0xb: "2K_PU",
 		0xc: "20K_PU",
 		0xd: "667_PU",
-		0xf: "NATIVE"}
+		0xf: "NATIVE",
+	}
 	str, valid := pull[macro.dw().getTermination()]
 	if !valid {
 		str = "INVALID"
@@ -293,7 +294,6 @@ func (macro *macro) check() {
 // return: string of macro
 //         error
 func (macro *macro) generate(id string, dw0 uint32, dw1 uint32) string {
-	macro.padID = id
 	macro.dwcfg.reg[0] = dw0
 	macro.dwcfg.reg[1] = dw1
 	dw := &macro.dwcfg
@@ -349,7 +349,7 @@ func (macro *macro) generate(id string, dw0 uint32, dw1 uint32) string {
 // dw1 : DW1 config register value
 // return: string of macro
 //         error
-func GetMacro(padID string, dw0 uint32, dw1 uint32) string {
-	var macro macro
-	return macro.generate(padID, dw0, dw1)
+func GetMacro(id string, dw0 uint32, dw1 uint32) string {
+	macro := macro{padID : id}
+	return macro.generate(id, dw0, dw1)
 }

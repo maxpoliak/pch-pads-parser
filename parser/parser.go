@@ -96,8 +96,7 @@ type ParserData struct {
 // line      : string/line from the inteltool log file
 // community : pads community number
 func (parser *ParserData) padInfoAdd(line string, community uint8) {
-	var pad padInfo
-	pad.community = community;
+	pad := padInfo{community : community}
 	pad.add(line)
 	parser.padmap = append(parser.padmap, pad)
 }
