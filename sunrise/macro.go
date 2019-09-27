@@ -283,9 +283,7 @@ func (macro *macro) check() {
 	if !macro.dw().maskCheck(0) {
 		macro.common()
 		// Debug message about this
-		fmt.Printf(
-			"\nCoreboot macros can't define the configuration for pad: %s\n",
-			macro.padID)
+		fmt.Printf("\nNo configuration for pad: %s\n", macro.padID)
 		fmt.Printf("Use %s\n", macro.get())
 	}
 }
@@ -293,11 +291,8 @@ func (macro *macro) check() {
 // Gets base string of current macro
 // return: string of macro
 //         error
-func (macro *macro) generate(id string, dw0 uint32, dw1 uint32) string {
-	macro.dwcfg.reg[0] = dw0
-	macro.dwcfg.reg[1] = dw1
-	dw := &macro.dwcfg
-
+func (macro *macro) generate() string {
+	dw := macro.dw()
 	macro.set("PAD_CFG")
 	if dw.getPadMode() == 0 {
 		// GPIO
@@ -350,6 +345,6 @@ func (macro *macro) generate(id string, dw0 uint32, dw1 uint32) string {
 // return: string of macro
 //         error
 func GetMacro(id string, dw0 uint32, dw1 uint32) string {
-	macro := macro{padID : id}
-	return macro.generate(id, dw0, dw1)
+	macro := macro{ padID: id, dwcfg: dwcfg{ reg: [MaxDWNum]uint32{dw0, dw1} } }
+	return macro.generate()
 }
