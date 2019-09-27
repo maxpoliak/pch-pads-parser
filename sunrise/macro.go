@@ -297,11 +297,11 @@ func (macro *macro) generate() string {
 	if dw.getPadMode() == 0 {
 		// GPIO
 		switch dw.getGPIORxTxDisableStatus() {
-		case rxDisable:
+		case txDisable:
 			// GPI
 			macro.addSuffixInput()
 
-		case txDisable:
+		case rxDisable:
 			// GPO
 			macro.addSuffixOutput()
 
