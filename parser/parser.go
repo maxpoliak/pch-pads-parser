@@ -19,7 +19,6 @@ type padInfo struct {
 	id        string
 	offset    uint16
 	function  string
-	community uint8
 	dw0       uint32
 	dw1       uint32
 }
@@ -95,8 +94,8 @@ type ParserData struct {
 // padInfoAdd - adds a new entry to pad info map
 // line      : string/line from the inteltool log file
 // community : pads community number
-func (parser *ParserData) padInfoAdd(line string, community uint8) {
-	pad := padInfo{community : community}
+func (parser *ParserData) padInfoAdd(line string) {
+	pad := padInfo{}
 	pad.add(line)
 	parser.padmap = append(parser.padmap, pad)
 }
@@ -170,19 +169,13 @@ func (parser *ParserData) Parse(logFile string) (err error) {
 	fmt.Println("Parse IntelTool Log File...")
 	scanner := bufio.NewScanner(file)
 	var line string
-	var community uint8 = 0
 	for scanner.Scan() {
 		line = scanner.Text()
 		// Use only the string that contains the GPP information
 		if !strings.Contains(line, "GPP_") && !strings.Contains(line, "GPD") {
-			// ------- GPIO Community 0 -------
-			if strings.Contains(line, "Community") {
-				community = parser.getCommunity(line)
-			} else {
 				continue
-			}
 		}
-		parser.padInfoAdd(line, community)
+		parser.padInfoAdd(line)
 	}
 	fmt.Println("...done!")
 	return nil
