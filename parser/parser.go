@@ -88,8 +88,9 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File) {
 // padmap  : pad info map
 // dbgFlag : gebug flag, currently not used
 type ParserData struct {
-	padmap []padInfo
-	RawFmt bool
+	padmap  []padInfo
+	LogFile *os.File
+	RawFmt  bool
 }
 
 // padInfoAdd - adds a new entry to pad info map
@@ -157,18 +158,10 @@ const struct pad_config *get_early_gpio_table(size_t *num)
 
 // Parse pads groupe information in the inteltool log file
 // logFile : name of inteltool log file
-// return
-// err : error
-func (parser *ParserData) Parse(logFile string) (err error) {
-	file, err := os.Open(logFile)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
+func (parser *ParserData) Parse() {
 	// Read all lines from inteltool log file
 	fmt.Println("Parse IntelTool Log File...")
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(parser.LogFile)
 	var line string
 	for scanner.Scan() {
 		line = scanner.Text()
@@ -179,5 +172,4 @@ func (parser *ParserData) Parse(logFile string) (err error) {
 		parser.padInfoAdd(line)
 	}
 	fmt.Println("...done!")
-	return nil
 }
