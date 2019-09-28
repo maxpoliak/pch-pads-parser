@@ -56,13 +56,8 @@ const struct pad_config *get_early_gpio_table(size_t *num);
 // showRawDataFlag : raw data flag
 //                   in the case when this flag is false, pad information will
 //                   be create as macro
-func CreateGpioFile(parser *parser.ParserData, showRawDataFlag bool) (err error) {
-	var name = "generate/gpio"
-	if showRawDataFlag {
-		name += "_raw"
-	}
-	name += ".c"
-	gpio, err := os.Create(name)
+func CreateGpioFile(parser *parser.ParserData) (err error) {
+	gpio, err := os.Create("generate/gpio.c")
 	if err != nil {
 		fmt.Printf("Error!\n")
 		return err
@@ -75,7 +70,7 @@ func CreateGpioFile(parser *parser.ParserData, showRawDataFlag bool) (err error)
 #include "include/gpio.h"
 `)
 	// Add the pads map to gpio.h file
-	parser.PadMapFprint(gpio, showRawDataFlag)
+	parser.PadMapFprint(gpio)
 	return nil
 }
 
@@ -85,14 +80,14 @@ func main() {
 	wordPtr := flag.String("file",
 		"inteltool.log",
 		"the path to the inteltool log file")
-	dbgPtr := flag.Bool("dbg", false, "debug flag")
+	rawFlag := flag.Bool("raw",
+		false,
+		"generate macros with raw values of registers DW0, DW1")
 	flag.Parse()
 
-	fmt.Println("dbg:", *dbgPtr)
 	fmt.Println("file:", *wordPtr)
 
-	var parser parser.ParserData
-	parser.DbgFlag = *dbgPtr
+	parser := parser.ParserData{RawFmt: *rawFlag}
 	err := parser.Parse(*wordPtr)
 	if err != nil {
 		fmt.Printf("Parser: Error!\n")
@@ -102,28 +97,21 @@ func main() {
 	// create dir for output files
 	err = os.MkdirAll("generate", os.ModePerm)
 	if err != nil {
-		fmt.Printf("Create a directory of generated files: Error!\n")
+		fmt.Printf("Error! Can not create a directory for the generated files!\n")
 		os.Exit(1)
 	}
 
 	// gpio.h
 	err = CreateHdrFile()
 	if err != nil {
-		fmt.Printf("Create pch_gpio.h: Error!\n")
+		fmt.Printf("Error! Can not create the gpio.h file!\n")
 		os.Exit(1)
 	}
 
-	// gpio_raw.c
-	err = CreateGpioFile(&parser, true)
+	// gpio.c
+	err = CreateGpioFile(&parser)
 	if err != nil {
-		fmt.Printf("Create gpio_raw.c: Error!\n")
-		os.Exit(1)
-	}
-
-	// gpio.c with macros
-	err = CreateGpioFile(&parser, false)
-	if err != nil {
-		fmt.Printf("Create gpio.c: Error!\n")
+		fmt.Printf("Error! Can not create the gpio.c file!\n")
 		os.Exit(1)
 	}
 }

@@ -74,7 +74,8 @@ func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 
 // padInfoMacroFprint - print information about current pad to file using
 // special macros:
-// PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1), /* SATAXPCIE4 */
+// /* GPP_F1 - SATAXPCIE4 */
+// PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1),
 // gpio : gpio.c file descriptor
 func (info *padInfo) padInfoMacroFprint(gpio *os.File) {
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n\t%s\n",
@@ -87,8 +88,8 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File) {
 // padmap  : pad info map
 // dbgFlag : gebug flag, currently not used
 type ParserData struct {
-	padmap  []padInfo
-	DbgFlag bool
+	padmap []padInfo
+	RawFmt bool
 }
 
 // padInfoAdd - adds a new entry to pad info map
@@ -114,7 +115,7 @@ func (parser *ParserData) getCommunity(line string) uint8 {
 // gpio : gpio.c descriptor file
 // raw  : in the case when this flag is false, pad information will be print
 //        as macro
-func (parser *ParserData) PadMapFprint(gpio *os.File, raw bool) {
+func (parser *ParserData) PadMapFprint(gpio *os.File) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
 	for _, pad := range parser.padmap {
@@ -124,7 +125,7 @@ func (parser *ParserData) PadMapFprint(gpio *os.File, raw bool) {
 		case 0xffffffff:
 			pad.reservedFprint(gpio)
 		default:
-			if raw {
+			if parser.RawFmt {
 				pad.padInfoRawFprint(gpio)
 			} else {
 				pad.padInfoMacroFprint(gpio)
