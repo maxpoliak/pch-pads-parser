@@ -35,14 +35,28 @@ In the [coreboot], this utility is called `intelp2m` (Intel Pad to Macro):
   (shell)$ ./intelp2m -file /path/to/inteltool.log
   (shell)$ cp ./generate/gpio.* ../../src/mainboard/you_mainboard
 ```
+It is possible to use templates for parsing files of excellent inteltool.log.
+To specify such a pattern, use the option --t <template number>. For example,
+using template type # 1, you can parse gpio.h from an already added board in
+the coreboot project.
 
+```bash
+(shell)$ ./pch-pads-parser -h
+  -t
+    template type number
+	0 - inteltool.log (default)
+	1 - gpio.h
+	2 - your template
+(shell)$ ./pch-pads-parser -t 1 -file coreboot/src/mainboard/youboard/gpio.h
+```
+You can also add add a template to 'parser/template.go' for your file type with
+the configuration of the pads.
 
 ### Supports Chipsets
 
   Sunrise PCH
 
 TODO:
-  Lewisburg PCH
-  Apollo Lake SoC PCH
+Lewisburg PCH, Apollo Lake SoC PCH
 
 [coreboot]: https://github.com/coreboot/coreboot

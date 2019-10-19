@@ -23,29 +23,6 @@ type padInfo struct {
 	dw1      uint32
 }
 
-// add - add information about pad to data structure
-// line : string from inteltool log file
-func (info *padInfo) add(line string) {
-	var val uint64
-	if strings.HasPrefix(line, "----") {
-		// ------- GPIO Group GPP_A -------
-		// ------- GPIO Community 0 -------
-		// Add header to define GPIO group or community
-		info.function = line
-		return
-	}
-	// 0x0520: 0x0000003c44000600 GPP_B12  SLP_S0#
-	// 0x0438: 0xffffffffffffffff GPP_C7   RESERVED
-	fmt.Sscanf(line,
-		"0x%x: 0x%x %s %s",
-		&info.offset,
-		&val,
-		&info.id,
-		&info.function)
-	info.dw0 = uint32(val & 0xffffffff)
-	info.dw1 = uint32(val >> 32)
-}
-
 // titleFprint - print GPIO group title to file
 // gpio : gpio.c file descriptor
 func (info *padInfo) titleFprint(gpio *os.File) {
@@ -78,38 +55,52 @@ func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1),
 // gpio : gpio.c file descriptor
 func (info *padInfo) padInfoMacroFprint(gpio *os.File) {
-	fmt.Fprintf(gpio, "\t/* %s - %s */\n\t%s\n",
-		info.id,
-		info.function,
-		sunrise.GetMacro(info.id, info.dw0, info.dw1))
+	if len(info.function) > 0 {
+		fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
+	}
+	fmt.Fprintf(gpio, "\t%s\n", sunrise.GetMacro(info.id, info.dw0, info.dw1))
 }
 
 // ParserData - global data
-// padmap  : pad info map
-// dbgFlag : gebug flag, currently not used
+// padmap     : pad info map
+// ConfigFile : file name with pad configuration in text form
+// RawFmt     : flag for generating pads config file with DW0/1 reg raw values
+// Template   : structure template type of ConfigFile
 type ParserData struct {
-	padmap  []padInfo
-	LogFile *os.File
-	RawFmt  bool
+	padmap     []padInfo
+	ConfigFile *os.File
+	RawFmt     bool
+	Template   int
 }
 
-// padInfoAdd - adds a new entry to pad info map
-// line      : string/line from the inteltool log file
-// community : pads community number
-func (parser *ParserData) padInfoAdd(line string) {
-	pad := padInfo{}
-	pad.add(line)
+// padInfoExtract - adds a new entry to pad info map
+// line : string from file with pad config map
+func (parser *ParserData) padInfoExtract(line string) int {
+	var function, id string
+	var dw0, dw1 uint32
+	var template = map[int]template{
+		0: useInteltoolLogTemplate, // inteltool.log
+		1: useGpioHTemplate,        // gpio.h
+		2: useYourTemplate,         // your file
+	}
+	if applyTemplate, valid := template[parser.Template]; valid {
+		if applyTemplate(line, &function, &id, &dw0, &dw1) == 0 {
+			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1}
+			parser.padmap = append(parser.padmap, pad)
+			return 0
+		}
+		fmt.Printf("This template (index %d) does not match"+
+			" the entry in the configuration file!\n", parser.Template)
+		return -1
+	}
+	fmt.Printf("There is no template for this type index %d\n", parser.Template)
+	return -1
+}
+
+// communityGroupExtract
+func (parser *ParserData) communityGroupExtract(line string) {
+	pad := padInfo{function: line}
 	parser.padmap = append(parser.padmap, pad)
-}
-
-// getCommunity - scans the string and returns the pads community number
-// line   : string from inteltool log file
-// return
-// community number
-func (parser *ParserData) getCommunity(line string) uint8 {
-	var comm uint8
-	fmt.Sscanf(line, "------- GPIO Community %d -------", &comm)
-	return comm
 }
 
 // PadMapFprint - print pad info map to file
@@ -157,19 +148,22 @@ const struct pad_config *get_early_gpio_table(size_t *num)
 }
 
 // Parse pads groupe information in the inteltool log file
-// logFile : name of inteltool log file
+// ConfigFile : name of inteltool log file
 func (parser *ParserData) Parse() {
 	// Read all lines from inteltool log file
 	fmt.Println("Parse IntelTool Log File...")
-	scanner := bufio.NewScanner(parser.LogFile)
+	scanner := bufio.NewScanner(parser.ConfigFile)
 	var line string
 	for scanner.Scan() {
 		line = scanner.Text()
-		// Use only the string that contains the GPP information
-		if !strings.Contains(line, "GPP_") && !strings.Contains(line, "GPD") {
-			continue
+		if strings.Contains(line, "GPIO Community") || strings.Contains(line, "GPIO Group") {
+			parser.communityGroupExtract(line)
+		} else if strings.Contains(line, "GPP_") || strings.Contains(line, "GPD") {
+			if parser.padInfoExtract(line) != 0 {
+				fmt.Println("...error!")
+			}
 		}
-		parser.padInfoAdd(line)
+
 	}
 	fmt.Println("...done!")
 }

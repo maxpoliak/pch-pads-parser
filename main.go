@@ -77,24 +77,31 @@ func CreateGpioFile(parser *parser.ParserData) (err error) {
 // main
 func main() {
 	// Command line arguments
-	logFile := flag.String("file",
+	ConfigFile := flag.String("file",
 		"inteltool.log",
 		"the path to the inteltool log file")
 	rawFlag := flag.Bool("raw",
 		false,
 		"generate macros with raw values of registers DW0, DW1")
 
+	template := flag.Int("t", 0, "template type number\n"+
+		"\t0 - inteltool.log (default)\n"+
+		"\t1 - gpio.h\n"+
+		"\t2 - your template\n\t")
+
 	flag.Parse()
 
-	inteltoolLogFile, err := os.Open(*logFile)
+	inteltoolConfigFile, err := os.Open(*ConfigFile)
 	if err != nil {
 		fmt.Printf("Error: inteltool log file was not found!\n")
 		os.Exit(1)
 	}
-	defer inteltoolLogFile.Close()
-	fmt.Println("file:", *logFile)
+	defer inteltoolConfigFile.Close()
+	fmt.Println("file:", *ConfigFile)
 
-	parser := parser.ParserData{RawFmt: *rawFlag, LogFile: inteltoolLogFile}
+	parser := parser.ParserData{RawFmt: *rawFlag,
+		ConfigFile: inteltoolConfigFile,
+		Template:   *template}
 	parser.Parse()
 
 	// create dir for output files
