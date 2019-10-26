@@ -57,9 +57,8 @@ func useInteltoolLogTemplate(line string, function *string,
 			*function += "/" + fields[i]
 		}
 		fmt.Printf("4 Fields are: %q\n", fields)
-		return 0
 	}
-	return -1
+	return 0
 }
 
 // useGpioHTemplate
