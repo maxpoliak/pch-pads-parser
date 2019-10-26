@@ -56,7 +56,6 @@ func useInteltoolLogTemplate(line string, function *string,
 		for i := 4; i < len(fields); i++ {
 			*function += "/" + fields[i]
 		}
-		fmt.Printf("4 Fields are: %q\n", fields)
 	}
 	return 0
 }
@@ -80,7 +79,6 @@ func useGpioHTemplate(line string, function *string,
 			*id = fields[i+1]
 			fmt.Sscanf(fields[i+2], "0x%x", dw0)
 			fmt.Sscanf(fields[i+3], "0x%x", dw1)
-			fmt.Printf("4 Fields are: %q\n", fields)
 			*function = extractPadFuncFromComment(line)
 			return 0
 		}
