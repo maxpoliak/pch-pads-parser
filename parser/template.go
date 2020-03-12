@@ -75,7 +75,16 @@ func useGpioHTemplate(line string, function *string,
 	// _PAD_CFG_STRUCT(GPP_A0, 0x44000702, 0x00000000), /* RCIN# */
 	fields := strings.FieldsFunc(line, tokenCheck)
 	for i, field := range fields {
-		if field == "_PAD_CFG_STRUCT" && i+3 >= len(fields)-1 {
+		if field == "_PAD_CFG_STRUCT" {
+			if len(fields) < 5 {
+				/* the number of definitions does not match the format */
+				return -1
+			}
+
+			if !strings.Contains(fields[i+2], "0x") || !strings.Contains(fields[i+3], "0x") {
+				/* definitions inside the macro do not match the pattern */
+				return -1
+			}
 			*id = fields[i+1]
 			fmt.Sscanf(fields[i+2], "0x%x", dw0)
 			fmt.Sscanf(fields[i+3], "0x%x", dw1)
