@@ -206,7 +206,12 @@ func (macro *macro) addSuffixInput() {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SMI").add("(").id().pull().rstsrc().invert()
+		macro.add("_SMI").add("(").id().pull().rstsrc()
+		if (isEdge & 0x1) == 0 {
+			// e.g. PAD_CFG_GPI_SMI(GPP_E7, NONE, DEEP, LEVEL, NONE),
+			macro.trig()
+		}
+		macro.invert()
 
 	case isEdge != 0:
 		// e.g. ISH_SPI_CS#
