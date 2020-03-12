@@ -126,24 +126,14 @@ func (parser *ParserData) PadMapFprint(gpio *os.File) {
 	}
 	gpio.WriteString("};\n")
 
-	// FIXME: need to add early configuration
-	gpio.WriteString(`/* Early pad configuration in romstage. */
+	// Add early configuration
+	gpio.WriteString(`/* Early pad configuration in romstage */
 static const struct pad_config early_gpio_table[] = {
-	/* TODO: Add early pad configuration */
+	/*
+	 * FIXME: This array cannot be generated automatically. Use macros here as
+	 * you see fit.
+	 */
 };
-
-const struct pad_config *get_gpio_table(size_t *num)
-{
-	*num = ARRAY_SIZE(gpio_table);
-	return gpio_table;
-}
-
-const struct pad_config *get_early_gpio_table(size_t *num)
-{
-	*num = ARRAY_SIZE(early_gpio_table);
-	return early_gpio_table;
-}
-
 `)
 }
 

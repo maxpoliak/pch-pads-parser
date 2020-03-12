@@ -27,8 +27,9 @@ func HdrInfoAdd(f *os.File) {
 `)
 }
 
-// CreateHdrFile - generates include file
-func CreateHdrFile() (err error) {
+// CreateGpioCfgFile - generates include file
+// parser            : parser data structure
+func CreateGpioCfgFile(parser *parser.ParserData) (err error) {
 	hrdFile, err := os.Create("generate/gpio.h")
 	if err != nil {
 		fmt.Printf("Error!\n")
@@ -37,40 +38,18 @@ func CreateHdrFile() (err error) {
 	defer hrdFile.Close()
 
 	HdrInfoAdd(hrdFile)
-	hrdFile.WriteString(`#ifndef PCH_GPIO_H
-#define PCH_GPIO_H
+	hrdFile.WriteString(`#ifndef CFG_GPIO_H
+#define CFG_GPIO_H
 
 #include <soc/gpe.h>
 #include <soc/gpio.h>
-
-const struct pad_config *get_gpio_table(size_t *num);
-const struct pad_config *get_early_gpio_table(size_t *num);
-
-#endif /* PCH_GPIO_H */
 `)
-	return nil
-}
+	// Add the pads map
+	parser.PadMapFprint(hrdFile)
+	hrdFile.WriteString(`
 
-// CreateGpioFile - generates gpio_raw.c file
-// parser          : parser data structure
-// showRawDataFlag : raw data flag
-//                   in the case when this flag is false, pad information will
-//                   be create as macro
-func CreateGpioFile(parser *parser.ParserData) (err error) {
-	gpio, err := os.Create("generate/gpio.c")
-	if err != nil {
-		fmt.Printf("Error!\n")
-		return err
-	}
-	defer gpio.Close()
-
-	HdrInfoAdd(gpio)
-	gpio.WriteString(`
-#include <commonlib/helpers.h>
-#include "include/gpio.h"
+#endif /* CFG_GPIO_H */
 `)
-	// Add the pads map to gpio.h file
-	parser.PadMapFprint(gpio)
 	return nil
 }
 
@@ -112,16 +91,9 @@ func main() {
 	}
 
 	// gpio.h
-	err = CreateHdrFile()
+	err = CreateGpioCfgFile(&parser)
 	if err != nil {
-		fmt.Printf("Error! Can not create the gpio.h file!\n")
-		os.Exit(1)
-	}
-
-	// gpio.c
-	err = CreateGpioFile(&parser)
-	if err != nil {
-		fmt.Printf("Error! Can not create the gpio.c file!\n")
+		fmt.Printf("Error! Can not create the file with GPIO configuration!\n")
 		os.Exit(1)
 	}
 }
