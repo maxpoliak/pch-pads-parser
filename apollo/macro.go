@@ -340,7 +340,9 @@ func (macro *macro) common() *macro {
 	if macro.dw().getGPIOTXState() != 0 {
 		macro.add(" | 1")
 	}
-	return macro.add(",\n\t\tPAD_PULL(").pull().add(")),")
+	macro.add(",\n\t\tPAD_PULL(").pull().add(") | PAD_IOSSTATE(").iosstate()
+	macro.add(") | PAD_IOSTERM(").ioterm().add(")),")
+	return macro
 }
 
 // Check created macro
