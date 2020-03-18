@@ -97,7 +97,7 @@ func (dw *dwcfg) maskCheck(regNum uint8) bool {
 	// Take into account the bits that are read-only
 	readonly := [MaxDWNum]uint32{
 		(0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe,
-		0xfffffc3f,
+		0xfffffc3f, // FIXME for apollo
 	}
 	mask := ^(dw.mask[regNum] | readonly[regNum])
 	return dw.reg[regNum]&mask == 0

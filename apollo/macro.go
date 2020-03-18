@@ -146,6 +146,45 @@ func (macro *macro) bufdis() *macro {
 	return macro.separator().add(buffDisStat[state])
 }
 
+// no common
+
+// Add a line to the macro that defines IO Standby State
+// return: macro
+func (macro *macro) iosstate() *macro {
+	var stateMacro = map[uint8]string{
+		0x0: "TxLASTRxE",
+		0x1: "Tx0RxDCRx0",
+		0x2: "Tx0RxDCRx1",
+		0x3: "Tx1RxDCRx0",
+		0x4: "Tx1RxDCRx1",
+		0x5: "Tx0RxE",
+		0x6: "Tx1RxE",
+		0x7: "HIZCRx0",
+		0x8: "HIZCRx1",
+		0x9: "TxDRxE",
+		0xf: "IGNORE",
+	}
+	str, valid := stateMacro[macro.dw().getIOStandbyState()]
+	if !valid {
+		// ignore setting for incorrect value
+		str = "IGNORE"
+	}
+	return macro.separator().add(str)
+}
+
+// Add a line to the macro that defines IO Standby Termination
+// return: macro
+func (macro *macro) ioterm() *macro {
+	var iotermMacro = map[uint8]string{
+		0x0: "SAME",
+		0x1: "DISPUPD",
+		0x2: "ENPD",
+		0x3: "ENPU",
+	}
+	return macro.separator().add(iotermMacro[macro.dw().getIOStandbyTermination()])
+}
+// end no common
+
 //Adds pad native function (PMODE) as a new argument
 //return: macro
 func (macro *macro) padfn() *macro {
@@ -170,22 +209,18 @@ func (macro *macro) addSuffixInput() {
 	case dw.getGPIOInputRouteIOxAPIC():
 		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
 		macro.add("_APIC")
-		if isEdge == 0 {
-			if dw.getRXLevelConfiguration() {
-				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
-				macro.add("_INVERT")
-			}
-			macro.add("(").id().pull().rstsrc()
-		} else {
-			// PAD_CFG_GPI_APIC_IOS(GPP_C20, NONE, DEEP, LEVEL, INVERT,
-			// TxDRxE, DISPUPD) macro isn't used for this chipset. But, in
-			// the case when SOC_INTEL_COMMON_BLOCK_GPIO_LEGACY_MACROS is
-			// defined in the config, this macro allows you to set trig and
-			// invert parameters.
-			macro.add("_IOS").add("(").id().pull().rstsrc().trig().invert()
-			// IOStandby Config will be ignored for the Sunrise PCH, so use
-			// any values
-			macro.add(", TxDRxE, DISPUPD")
+		if dw.getRXLevelConfiguration() {
+			// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
+			macro.add("_INVERT")
+		}
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			// e.g. H1_PCH_INT_ODL
+			// PAD_CFG_GPI_APIC_IOS(GPIO_63, NONE, DEEP, LEVEL, INVERT, TxDRxE, DISPUPD),
+			macro.add("_IOS").add("_IOSTERM")
+		}
+		macro.add("(").id().pull().rstsrc()
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			macro.iosstate().ioterm()
 		}
 
 	case dw.getGPIOInputRouteSCI():
@@ -195,18 +230,34 @@ func (macro *macro) addSuffixInput() {
 			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SCI").add("(").id().pull().rstsrc()
+		macro.add("_SCI")
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			// e.g. PAD_CFG_GPI_SCI_IOS(GPIO_141, NONE, DEEP, EDGE_SINGLE, INVERT, IGNORE, DISPUPD),
+			macro.add("_IOS").add("_IOSTERM")
+		}
+		macro.add("(").id().pull().rstsrc()
 		if (isEdge & 0x1) == 0 {
 			macro.trig()
 		}
 		macro.invert()
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			macro.iosstate().ioterm()
+		}
 
 	case dw.getGPIOInputRouteSMI():
 		if (isEdge & 0x1) != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SMI").add("(").id().pull().rstsrc().invert()
+		macro.add("_SMI")
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			// e.g. PAD_CFG_GPI_SMI_IOS(GPIO_41, UP_20K, DEEP, EDGE_SINGLE, NONE, IGNORE, SAME),
+			macro.add("_IOS").add("_IOSTERM")
+		}
+		macro.add("(").id().pull().rstsrc().invert()
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			macro.iosstate().ioterm()
+		}
 
 	case isEdge != 0:
 		// e.g. ISH_SPI_CS#
@@ -223,17 +274,29 @@ func (macro *macro) addSuffixInput() {
 
 // Adds suffix to GPO macro with arguments
 func (macro *macro) addSuffixOutput() {
-	term := macro.dw().getTermination()
+	dw := macro.dw()
+	term := dw.getTermination()
 	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.add("_TERM")
 	}
-	macro.add("_GPO").add("(").id().val()
+	macro.add("_GPO")
+	if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+		// e.g. FST_SPI_CS1_B -- SPK_PA_EN_R
+		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
+		macro.add("_IOSSTATE").add("_IOSTERM")
+	}
+	macro.add("(").id().val()
 	if term != 0 {
 		macro.pull()
 	}
 	macro.rstsrc()
+	if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+		// e.g. FST_SPI_CS1_B -- SPK_PA_EN_R
+		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
+		macro.iosstate().ioterm()
+	}
 
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 	// See https://github.com/coreboot/coreboot/commit/3820e3c
@@ -324,16 +387,34 @@ func (macro *macro) generate() string {
 	} else {
 		isEdge := dw.getRXLevelEdgeConfiguration() != 0
 		isTxRxBufDis := dw.getGPIORxTxDisableStatus() != 0
+		isIOStandbyStateUsed := dw.getIOStandbyState() != 0
+		isIOStandbyTerminationUsed := dw.getIOStandbyTermination() != 0
 		// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 		macro.add("_NF")
 		if isEdge || isTxRxBufDis {
 			// e.g. PCHHOT#
 			// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
 			macro.add("_BUF_TRIG")
+			if isIOStandbyStateUsed || isIOStandbyTerminationUsed {
+				// e.g. CNV_MFUART2_TXD
+				// PAD_CFG_NF_IOSSTATE(GPIO_22, UP_20K, DEEP, NF2, TxDRxE),
+				macro.add("_IOSSTATE")
+				if isIOStandbyTerminationUsed {
+					// e.g. TRACE_0_CLK_VNN
+					// PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_8, DN_20K, DEEP, NF5, HIZCRx0, DISPUPD),
+					macro.add("_IOSTERM")
+				}
+			}
 		}
 		macro.add("(").id().pull().rstsrc().padfn()
 		if isEdge || isTxRxBufDis {
 			macro.bufdis().trig()
+			if isIOStandbyStateUsed || isIOStandbyTerminationUsed {
+				macro.iosstate()
+				if isIOStandbyTerminationUsed {
+					macro.ioterm()
+				}
+			}
 		}
 	}
 	macro.add("),")
