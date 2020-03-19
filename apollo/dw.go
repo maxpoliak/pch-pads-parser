@@ -251,7 +251,7 @@ func (dw *dwcfg) getTermination() uint8 {
 // 2 = Enable Pull-down
 // 3 = Enable Pull-up
 func (dw *dwcfg) getIOStandbyTermination() uint8 {
-	return dw.getFieldVal(1, termMask, termShift)
+	return dw.getFieldVal(1, ioStandbyTerminationMask, ioStandbyTerminationShift)
 }
 
 // end no common
