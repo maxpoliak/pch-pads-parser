@@ -396,31 +396,27 @@ func (macro *macro) generate() string {
 		isTxRxBufDis := dw.getGPIORxTxDisableStatus() != 0
 		isIOStandbyStateUsed := dw.getIOStandbyState() != 0
 		isIOStandbyTerminationUsed := dw.getIOStandbyTermination() != 0
-		// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 		macro.add("_NF")
-		if isEdge || isTxRxBufDis {
-			// e.g. PCHHOT#
-			// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
-			macro.add("_BUF_TRIG")
-			if isIOStandbyStateUsed || isIOStandbyTerminationUsed {
-				// e.g. CNV_MFUART2_TXD
+		if !isEdge || !isTxRxBufDis {
+			if !isIOStandbyTerminationUsed {
 				// PAD_CFG_NF_IOSSTATE(GPIO_22, UP_20K, DEEP, NF2, TxDRxE),
 				macro.add("_IOSSTATE")
-				if isIOStandbyTerminationUsed {
-					// e.g. TRACE_0_CLK_VNN
-					// PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_8, DN_20K, DEEP, NF5, HIZCRx0, DISPUPD),
-					macro.add("_IOSTERM")
-				}
+				macro.add("(").id().pull().rstsrc().padfn().iosstate().add("),")
+				macro.check()
+				return macro.get()
 			}
-		}
-		macro.add("(").id().pull().rstsrc().padfn()
-		if isEdge || isTxRxBufDis {
-			macro.bufdis().trig()
-			if isIOStandbyStateUsed || isIOStandbyTerminationUsed {
-				macro.iosstate()
-				if isIOStandbyTerminationUsed {
-					macro.ioterm()
-				}
+			// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
+			macro.add("(").id().pull().rstsrc().padfn()
+		} else {
+			macro.add("_BUF")
+			if !isIOStandbyStateUsed && !isIOStandbyTerminationUsed {
+				// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
+				macro.add("_TRIG").add("(").id().pull().rstsrc().padfn().bufdis().trig()
+			} else {
+				// PAD_CFG_NF_BUF_IOSSTATE_IOSTERM(GPIO_103, NATIVE, DEEP, NF1,
+				//         TX_DISABLE, MASK, SAME),
+				macro.add("_IOSSTATE_IOSTERM").add("(").id().pull().rstsrc().padfn()
+				macro.bufdis().iosstate().ioterm()
 			}
 		}
 	}
