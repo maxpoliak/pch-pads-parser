@@ -276,7 +276,12 @@ func (macro *macro) addSuffixInput() {
 func (macro *macro) addSuffixOutput() {
 	dw := macro.dw()
 	term := dw.getTermination()
-	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
+	if dw.getGPIORxTxDisableStatus() == 3 {
+		// if Rx and Tx buffers are disabled
+		// e.g. PAD_CFG_GPIO_HI_Z(GPIO_91, NATIVE, DEEP, IGNORE, SAME),
+		macro.add("_GPO_HI_Z").id().pull().rstsrc().iosstate().ioterm()
+	}
+	// FIXME: add _DRIVER(..)
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.add("_TERM")
