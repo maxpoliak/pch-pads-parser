@@ -19,7 +19,7 @@ const (
 
 	// no common
 	rxtxEnableConfigShift uint8  = 21
-	rxtxEnableConfigMask  uint32 = 0x2 << rxtxEnableConfigShift
+	rxtxEnableConfigMask  uint32 = 0x3 << rxtxEnableConfigShift
 	// end
 
 	gpioInputRouteIOxApicShift uint8  = 20
