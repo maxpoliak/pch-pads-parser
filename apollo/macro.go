@@ -342,9 +342,15 @@ func (macro *macro) common() *macro {
 	}
 
 	macro.add(" |\n\t\t").add("PAD_BUF(").bufdis().add(")")
+
+	if val := int(macro.dw().getRxTxEnableConfig()); val != 0 {
+		macro.add(" | (").add(strconv.Itoa(val)).add(") << 21 | ")
+	}
+
 	if macro.dw().getGPIOTXState() != 0 {
 		macro.add(" | 1")
 	}
+
 	macro.add(",\n\t\tPAD_PULL(").pull().add(") | PAD_IOSSTATE(").iosstate()
 	macro.add(") | PAD_IOSTERM(").ioterm().add(")),")
 	return macro
