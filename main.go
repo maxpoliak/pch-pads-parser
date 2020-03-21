@@ -68,6 +68,10 @@ func main() {
 		"\t1 - gpio.h\n"+
 		"\t2 - your template\n\t")
 
+	platform :=  flag.String("p", "sunrise", "set up a platform\n"+
+		"\tsunrise - Sunrise PCH or Skylake/Kaby Lake SoC (default)\n"+
+		"\tapollo  - Apollo Lake SoC\n")
+
 	flag.Parse()
 
 	inteltoolConfigFile, err := os.Open(*ConfigFile)
@@ -80,7 +84,8 @@ func main() {
 
 	parser := parser.ParserData{RawFmt: *rawFlag,
 		ConfigFile: inteltoolConfigFile,
-		Template:   *template}
+		Template:   *template,
+		Platform:   *platform}
 	parser.Parse()
 
 	// create dir for output files

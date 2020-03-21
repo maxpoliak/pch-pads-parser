@@ -431,12 +431,12 @@ func (macro *macro) generate() string {
 	return macro.get()
 }
 
-// GetMacro - get pad macro
+// GenMacro - generate pad macro
 // dw0 : DW0 config register value
 // dw1 : DW1 config register value
 // return: string of macro
 //         error
-func GetMacro(id string, dw0 uint32, dw1 uint32) string {
+func GenMacro(id string, dw0 uint32, dw1 uint32) string {
 	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}}
 	return macro.generate()
 }

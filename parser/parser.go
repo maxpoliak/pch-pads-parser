@@ -8,6 +8,10 @@ import (
 )
 
 import "../sunrise"
+import "../apollo"
+
+type generateMacro func(id string, dw0 uint32, dw1 uint32) string
+type keywordFilter func(line string) bool
 
 // padInfo - information about pad
 // id       : pad id string
@@ -54,11 +58,11 @@ func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 // /* GPP_F1 - SATAXPCIE4 */
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1),
 // gpio : gpio.c file descriptor
-func (info *padInfo) padInfoMacroFprint(gpio *os.File) {
+func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
 	if len(info.function) > 0 {
 		fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 	}
-	fmt.Fprintf(gpio, "\t%s\n", sunrise.GetMacro(info.id, info.dw0, info.dw1))
+	fmt.Fprintf(gpio, "\t%s\n", genMacro(info.id, info.dw0, info.dw1))
 }
 
 // ParserData - global data
@@ -71,6 +75,7 @@ type ParserData struct {
 	ConfigFile *os.File
 	RawFmt     bool
 	Template   int
+	Platform   string
 }
 
 // padInfoExtract - adds a new entry to pad info map
@@ -103,6 +108,23 @@ func (parser *ParserData) communityGroupExtract(line string) {
 	parser.padmap = append(parser.padmap, pad)
 }
 
+// platformSpecMacroFuncGet - returns a platform specific macro generation function
+func (parser *ParserData) platformSpecMacroFuncGet() generateMacro {
+	if parser.Platform == "apollo" {
+		return apollo.GenMacro
+	}
+	return sunrise.GenMacro
+}
+
+// platformSpecKeywordCheckFuncGet - returns a platform specific function to filter
+//                                   keywords
+func (parser *ParserData) platformSpecKeywordCheckFuncGet() keywordFilter {
+	if parser.Platform == "apollo" {
+		return apollo.KeywordCheck
+	}
+	return sunrise.KeywordCheck
+}
+
 // PadMapFprint - print pad info map to file
 // gpio : gpio.c descriptor file
 // raw  : in the case when this flag is false, pad information will be print
@@ -110,6 +132,7 @@ func (parser *ParserData) communityGroupExtract(line string) {
 func (parser *ParserData) PadMapFprint(gpio *os.File) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
+	genMacro := parser.platformSpecMacroFuncGet()
 	for _, pad := range parser.padmap {
 		switch pad.dw0 {
 		case 0:
@@ -120,7 +143,7 @@ func (parser *ParserData) PadMapFprint(gpio *os.File) {
 			if parser.RawFmt {
 				pad.padInfoRawFprint(gpio)
 			} else {
-				pad.padInfoMacroFprint(gpio)
+				pad.padInfoMacroFprint(gpio, genMacro)
 			}
 		}
 	}
@@ -143,17 +166,18 @@ func (parser *ParserData) Parse() {
 	// Read all lines from inteltool log file
 	fmt.Println("Parse IntelTool Log File...")
 	scanner := bufio.NewScanner(parser.ConfigFile)
+	keywordFilterApply := parser.platformSpecKeywordCheckFuncGet()
+
 	var line string
 	for scanner.Scan() {
 		line = scanner.Text()
 		if strings.Contains(line, "GPIO Community") || strings.Contains(line, "GPIO Group") {
 			parser.communityGroupExtract(line)
-		} else if strings.Contains(line, "GPP_") || strings.Contains(line, "GPD") {
+		} else if keywordFilterApply(line) {
 			if parser.padInfoExtract(line) != 0 {
 				fmt.Println("...error!")
 			}
 		}
-
 	}
 	fmt.Println("...done!")
 }
