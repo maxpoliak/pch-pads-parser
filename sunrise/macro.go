@@ -128,7 +128,7 @@ func (macro *macro) trig() *macro {
 func (macro *macro) invert() *macro {
 	macro.separator()
 	if macro.dw().getRXLevelConfiguration() {
-		return macro.add("YES")
+		return macro.add("INVERT")
 	}
 	return macro.add("NONE")
 }
