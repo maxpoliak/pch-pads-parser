@@ -280,9 +280,13 @@ func (macro *macro) addSuffixOutput() {
 	}
 	macro.add("_GPO")
 	if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
-		// e.g. FST_SPI_CS1_B -- SPK_PA_EN_R
 		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
 		macro.add("_IOSSTATE").add("_IOSTERM")
+		if term != 0 {
+			// PAD_CFG_TERM_GPO_IOSSTATE_IOSTERM(PMU_WAKE_B, 0, 20K_PU, DEEP, IGNORE, SAME),
+			// in this case create common macro
+			return
+		}
 	}
 	macro.add("(").id().val()
 	if term != 0 {
