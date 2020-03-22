@@ -84,13 +84,13 @@ func (macro *macro) rstsrc() *macro {
 func (macro *macro) pull() *macro {
 	var pull = map[uint8]string{
 		0x0: "NONE",
-		0x2: "5K_PD",
-		0x4: "20K_PD",
-		0x9: "1K_PU",
-		0xa: "5K_PU",
-		0xb: "2K_PU",
-		0xc: "20K_PU",
-		0xd: "667_PU",
+		0x2: "DN_5K",
+		0x4: "DN_20K",
+		0x9: "UP_1K",
+		0xa: "UP_5K",
+		0xb: "UP_2K",
+		0xc: "UP_20K",
+		0xd: "UP_667",
 		0xf: "NATIVE",
 	}
 	str, valid := pull[macro.dw().getTermination()]
