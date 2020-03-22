@@ -270,7 +270,8 @@ func (macro *macro) addSuffixOutput() {
 	if dw.getGPIORxTxDisableStatus() == 3 {
 		// if Rx and Tx buffers are disabled
 		// e.g. PAD_CFG_GPIO_HI_Z(GPIO_91, NATIVE, DEEP, IGNORE, SAME),
-		macro.add("_GPO_HI_Z").id().pull().rstsrc().iosstate().ioterm()
+		macro.add("_GPIO_HI_Z").id().pull().rstsrc().iosstate().ioterm()
+		return
 	}
 	// FIXME: add _DRIVER(..)
 	if term != 0 {
