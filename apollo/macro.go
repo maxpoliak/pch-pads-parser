@@ -209,54 +209,45 @@ func (macro *macro) addSuffixInput() {
 	case dw.getGPIOInputRouteIOxAPIC():
 		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
 		macro.add("_APIC")
-		if dw.getRXLevelConfiguration() {
-			// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
-			macro.add("_INVERT")
-		}
 		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
 			// e.g. H1_PCH_INT_ODL
 			// PAD_CFG_GPI_APIC_IOS(GPIO_63, NONE, DEEP, LEVEL, INVERT, TxDRxE, DISPUPD),
-			macro.add("_IOS").add("_IOSTERM")
-		}
-		macro.add("(").id().pull().rstsrc()
-		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
-			macro.iosstate().ioterm()
+			macro.add("_IOS")
+			macro.add("(").id().pull().rstsrc().trig().invert().iosstate().ioterm()
+		} else {
+			if dw.getRXLevelConfiguration() {
+				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
+				macro.add("_INVERT")
+			}
+			// PAD_CFG_GPI_APIC(GPP_C5, DN_20K, DEEP),
+			macro.add("(").id().pull().rstsrc()
 		}
 
 	case dw.getGPIOInputRouteSCI():
-
-		// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
-		if (isEdge & 0x1) != 0 {
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			// PAD_CFG_GPI_SCI_IOS(GPIO_141, NONE, DEEP, EDGE_SINGLE, INVERT, IGNORE, DISPUPD),
+			macro.add("_SCI_IOS")
+			macro.add("(").id().pull().rstsrc().trig().invert().iosstate().ioterm()
+		} else if (isEdge & 0x1) != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
-			macro.add("_ACPI")
-		}
-		macro.add("_SCI")
-		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
-			// e.g. PAD_CFG_GPI_SCI_IOS(GPIO_141, NONE, DEEP, EDGE_SINGLE, INVERT, IGNORE, DISPUPD),
-			macro.add("_IOS").add("_IOSTERM")
-		}
-		macro.add("(").id().pull().rstsrc()
-		if (isEdge & 0x1) == 0 {
-			macro.trig()
-		}
-		macro.invert()
-		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
-			macro.iosstate().ioterm()
+			macro.add("_ACPI_SCI").add("(").id().pull().rstsrc().invert()
+		} else {
+			// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
+			macro.add("_SCI").add("(").id().pull().rstsrc().trig().invert()
 		}
 
 	case dw.getGPIOInputRouteSMI():
-		if (isEdge & 0x1) != 0 {
+
+		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
+			// PAD_CFG_GPI_SMI_IOS(GPIO_41, UP_20K, DEEP, EDGE_SINGLE, NONE, IGNORE, SAME),
+			macro.add("_SMI_IOS")
+			macro.add("(").id().pull().rstsrc().trig().invert().iosstate().ioterm()
+		} else if (isEdge & 0x1) != 0 {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
-			macro.add("_ACPI")
-		}
-		macro.add("_SMI")
-		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
-			// e.g. PAD_CFG_GPI_SMI_IOS(GPIO_41, UP_20K, DEEP, EDGE_SINGLE, NONE, IGNORE, SAME),
-			macro.add("_IOS").add("_IOSTERM")
-		}
-		macro.add("(").id().pull().rstsrc().invert()
-		if dw.getIOStandbyState() != 0 || dw.getIOStandbyTermination() != 0 {
-			macro.iosstate().ioterm()
+			macro.add("_ACPI_SMI").add("(").id().pull().rstsrc().invert()
+		} else {
+			// e. g. PAD_CFG_GPI_SMI(GPP_E3, NONE, PLTRST, EDGE_SINGLE, NONE),
+			macro.add("_SMI").add("(").id().pull().rstsrc().trig().invert()
 		}
 
 	case isEdge != 0:
