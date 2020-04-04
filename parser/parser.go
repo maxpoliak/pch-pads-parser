@@ -160,6 +160,26 @@ static const struct pad_config early_gpio_table[] = {
 `)
 }
 
+// Register - read specific platform registers (32 bits)
+// line         : string from file with pad config map
+// nameTemplate : register name femplate to filter parsed lines
+// return
+//     valid  : true if the dump of the register in intertool.log is set in accordance
+//              with the template
+//     name   : full register name
+//     offset : register offset relative to the base address
+//     value  : register value
+func (parser *ParserData) Register(line string, nameTemplate string) (
+		valid bool, name string, offset uint32, value uint32) {
+	if strings.Contains(line, nameTemplate) && parser.Template == 0 {
+		if registerInfoTemplate(line, &name, &offset, &value) == 0 {
+			fmt.Printf("\n\t/* %s : 0x%x : 0x%x */\n", name, offset, value)
+			return true, name, offset, value
+		}
+	}
+	return false, "ERROR", 0, 0
+}
+
 // Parse pads groupe information in the inteltool log file
 // ConfigFile : name of inteltool log file
 func (parser *ParserData) Parse() {
