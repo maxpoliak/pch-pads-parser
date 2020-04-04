@@ -58,23 +58,27 @@ func (macro *macro) separator() *macro {
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: macro
 func (macro *macro) rstsrc() *macro {
-	var resetSrc = map[uint8]string{
-		0x0: "PWROK",
+	// The pads from the GPD group in the Sunrise point PCH have a specific Pad Reset
+	// Config Map, which differs from that in other groups. PADRSTCFG field in DW0
+	// register should implements 3h value as RSMRST and 0h as PWROK
+	if strings.Contains(macro.padID, "GPD") {
+		var gpdResetSrcMap = map[uint8]string{
+			0x0: "PWROK",
+			0x1: "DEEP",
+			0x2: "PLTRST",
+			0x3: "RSMRST",
+		}
+		return macro.separator().add(gpdResetSrcMap[macro.dw().getResetConfig()])
+	}
+
+	var resetSrcMap = map[uint8]string{
+		0x0: "RSMRST",
 		0x1: "DEEP",
 		0x2: "PLTRST",
 	}
-	str, valid := resetSrc[macro.dw().getResetConfig()]
+	str, valid := resetSrcMap[macro.dw().getResetConfig()]
 	if !valid {
-		// Pad Reset Config field in DW0 register should implements 3h value
-		// as RSMRST for GPD pads group, but this value is reserved for other
-		// groups
-		if strings.Contains(macro.padID, "GPD") {
-			str = "RSMRST"
-		} else {
-			str = resetSrc[0]
-			fmt.Println("Warning:", macro.padID, "PADRSTCFG = 3h Reserved")
-			fmt.Println("It is implemented as setting 0h (PWROK) for Sunrise PCH")
-		}
+			str = "RESERVED"
 	}
 	return macro.separator().add(str)
 }
