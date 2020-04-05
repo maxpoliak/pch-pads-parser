@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"strconv"
 )
 
 import "../sunrise"
@@ -25,6 +26,7 @@ type padInfo struct {
 	function string
 	dw0      uint32
 	dw1      uint32
+	driver   bool
 }
 
 // titleFprint - print GPIO group title to file
@@ -45,11 +47,15 @@ func (info *padInfo) reservedFprint(gpio *os.File) {
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
 // gpio : gpio.c file descriptor
 func (info *padInfo) padInfoRawFprint(gpio *os.File) {
+	info.dw1 &= 0xffffff00
+	if info.driver { 
+		info.dw1 |= 1 << 4
+	}
 	fmt.Fprintf(gpio,
 		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
 		info.id,
 		info.dw0,
-		(info.dw1 & 0xffffff00), // Interrupt Select - RO
+		info.dw1, // Interrupt Select - RO
 		info.function)
 }
 
@@ -81,6 +87,14 @@ type ParserData struct {
 	Platform   string
 }
 
+// groupNameExtract
+func (parser *ParserData) groupNameExtract(padid string) (bool, string) {
+	if parser.Platform == "apollo" {
+		return false, ""
+	}
+	return sunrise.GroupNameExtract(padid)
+}
+
 // padInfoExtract - adds a new entry to pad info map
 // line : string from file with pad config map
 func (parser *ParserData) padInfoExtract() int {
@@ -93,7 +107,13 @@ func (parser *ParserData) padInfoExtract() int {
 	}
 	if applyTemplate, valid := template[parser.Template]; valid {
 		if applyTemplate(parser.line, &function, &id, &dw0, &dw1) == 0 {
-			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1}
+			var driver bool = false
+			status, group := parser.groupNameExtract(id)
+			if parser.Template == 0 && status {
+				numder, _ := strconv.Atoi(strings.TrimLeft(id, group))
+				driver = (parser.ownership[group] & (1 << uint8(numder))) != 0
+			}
+			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1, driver: driver}
 			parser.padmap = append(parser.padmap, pad)
 			return 0
 		}
