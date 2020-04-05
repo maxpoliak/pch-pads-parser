@@ -66,11 +66,13 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
 }
 
 // ParserData - global data
+// line       : string from the configuration file
 // padmap     : pad info map
 // ConfigFile : file name with pad configuration in text form
 // RawFmt     : flag for generating pads config file with DW0/1 reg raw values
 // Template   : structure template type of ConfigFile
 type ParserData struct {
+	line       string
 	padmap     []padInfo
 	ConfigFile *os.File
 	RawFmt     bool
@@ -80,7 +82,7 @@ type ParserData struct {
 
 // padInfoExtract - adds a new entry to pad info map
 // line : string from file with pad config map
-func (parser *ParserData) padInfoExtract(line string) int {
+func (parser *ParserData) padInfoExtract() int {
 	var function, id string
 	var dw0, dw1 uint32
 	var template = map[int]template{
@@ -89,7 +91,7 @@ func (parser *ParserData) padInfoExtract(line string) int {
 		2: useYourTemplate,         // your file
 	}
 	if applyTemplate, valid := template[parser.Template]; valid {
-		if applyTemplate(line, &function, &id, &dw0, &dw1) == 0 {
+		if applyTemplate(parser.line, &function, &id, &dw0, &dw1) == 0 {
 			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1}
 			parser.padmap = append(parser.padmap, pad)
 			return 0
@@ -103,8 +105,8 @@ func (parser *ParserData) padInfoExtract(line string) int {
 }
 
 // communityGroupExtract
-func (parser *ParserData) communityGroupExtract(line string) {
-	pad := padInfo{function: line}
+func (parser *ParserData) communityGroupExtract() {
+	pad := padInfo{function: parser.line}
 	parser.padmap = append(parser.padmap, pad)
 }
 
@@ -169,10 +171,10 @@ static const struct pad_config early_gpio_table[] = {
 //     name   : full register name
 //     offset : register offset relative to the base address
 //     value  : register value
-func (parser *ParserData) Register(line string, nameTemplate string) (
+func (parser *ParserData) Register(nameTemplate string) (
 		valid bool, name string, offset uint32, value uint32) {
-	if strings.Contains(line, nameTemplate) && parser.Template == 0 {
-		if registerInfoTemplate(line, &name, &offset, &value) == 0 {
+	if strings.Contains(parser.line, nameTemplate) && parser.Template == 0 {
+		if registerInfoTemplate(parser.line, &name, &offset, &value) == 0 {
 			fmt.Printf("\n\t/* %s : 0x%x : 0x%x */\n", name, offset, value)
 			return true, name, offset, value
 		}
@@ -188,13 +190,12 @@ func (parser *ParserData) Parse() {
 	scanner := bufio.NewScanner(parser.ConfigFile)
 	keywordFilterApply := parser.platformSpecKeywordCheckFuncGet()
 
-	var line string
 	for scanner.Scan() {
-		line = scanner.Text()
-		if strings.Contains(line, "GPIO Community") || strings.Contains(line, "GPIO Group") {
-			parser.communityGroupExtract(line)
-		} else if keywordFilterApply(line) {
-			if parser.padInfoExtract(line) != 0 {
+		parser.line = scanner.Text()
+		if strings.Contains(parser.line, "GPIO Community") || strings.Contains(parser.line, "GPIO Group") {
+			parser.communityGroupExtract()
+		} else if keywordFilterApply(parser.line) {
+			if parser.padInfoExtract() != 0 {
 				fmt.Println("...error!")
 			}
 		}
