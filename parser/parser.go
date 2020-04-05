@@ -10,6 +10,7 @@ import (
 
 import "../sunrise"
 import "../apollo"
+import "../config"
 
 type generateMacro func(id string, dw0 uint32, dw1 uint32, driver bool) string
 type keywordFilter func(line string) bool
@@ -84,12 +85,11 @@ type ParserData struct {
 	ConfigFile *os.File
 	RawFmt     bool
 	Template   int
-	Platform   string
 }
 
 // groupNameExtract
 func (parser *ParserData) groupNameExtract(padid string) (bool, string) {
-	if parser.Platform == "apollo" {
+	if config.IsPlatformApollo() {
 		return false, ""
 	}
 	return sunrise.GroupNameExtract(padid)
@@ -133,7 +133,7 @@ func (parser *ParserData) communityGroupExtract() {
 
 // platformSpecMacroFuncGet - returns a platform specific macro generation function
 func (parser *ParserData) platformSpecMacroFuncGet() generateMacro {
-	if parser.Platform == "apollo" {
+	if config.IsPlatformApollo() {
 		return apollo.GenMacro
 	}
 	return sunrise.GenMacro
@@ -142,7 +142,7 @@ func (parser *ParserData) platformSpecMacroFuncGet() generateMacro {
 // platformSpecKeywordCheckFuncGet - returns a platform specific function to filter
 //                                   keywords
 func (parser *ParserData) platformSpecKeywordCheckFuncGet() keywordFilter {
-	if parser.Platform == "apollo" {
+	if config.IsPlatformApollo() {
 		return apollo.KeywordCheck
 	}
 	return sunrise.KeywordCheck
@@ -221,7 +221,7 @@ func (parser *ParserData) padOwnershipExtract() bool {
 //                           information from the inteltool log was successfully parsed.
 func (parser *ParserData) padConfigurationExtract() bool {
 	// Only for Sunrise PCH and only for inteltool.log file template
-	if parser.Template != 0 || parser.Platform == "apollo" {
+	if parser.Template != 0 || config.IsPlatformApollo() {
 		return false
 	}
 	return parser.padOwnershipExtract()

@@ -7,6 +7,7 @@ import (
 )
 
 import "./parser"
+import "./config"
 
 // HdrInfoAdd - adds license header to file f
 func HdrInfoAdd(f *os.File) {
@@ -74,6 +75,11 @@ func main() {
 
 	flag.Parse()
 
+	if valid := config.PlatformSet(*platform); valid != 0 {
+		fmt.Printf("Error: invalid platform!\n")
+		os.Exit(1)
+	}
+
 	inteltoolConfigFile, err := os.Open(*ConfigFile)
 	if err != nil {
 		fmt.Printf("Error: inteltool log file was not found!\n")
@@ -84,8 +90,7 @@ func main() {
 
 	parser := parser.ParserData{RawFmt: *rawFlag,
 		ConfigFile: inteltoolConfigFile,
-		Template:   *template,
-		Platform:   *platform}
+		Template:   *template}
 	parser.Parse()
 
 	// create dir for output files
