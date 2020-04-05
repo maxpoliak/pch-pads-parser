@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+import "../config"
+
 // macro - contains macro information and methods
 // padID : pad ID string
 // str   : macro string entirely
@@ -62,7 +64,7 @@ func (macro *macro) rstsrc() *macro {
 	// The pads from the GPD group in the Sunrise point PCH have a specific Pad Reset
 	// Config Map, which differs from that in other groups. PADRSTCFG field in DW0
 	// register should implements 3h value as RSMRST and 0h as PWROK
-	if strings.Contains(macro.padID, "GPD") {
+	if config.IsPlatformSunrise() && strings.Contains(macro.padID, "GPD") {
 		var gpdResetSrcMap = map[uint8]string{
 			0x0: "PWROK",
 			0x1: "DEEP",
