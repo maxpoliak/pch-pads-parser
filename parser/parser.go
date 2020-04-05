@@ -74,6 +74,7 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
 type ParserData struct {
 	line       string
 	padmap     []padInfo
+	ownership  map[string]uint32
 	ConfigFile *os.File
 	RawFmt     bool
 	Template   int
@@ -182,6 +183,30 @@ func (parser *ParserData) Register(nameTemplate string) (
 	return false, "ERROR", 0, 0
 }
 
+// padOwnershipExtract - extract Host Software Pad Ownership from inteltool dump
+//                       return true if success
+func (parser *ParserData) padOwnershipExtract() bool {
+	var group string
+	status, name, offset, value := parser.Register("HOSTSW_OWN_GPP_")
+	if status {
+		_, group = sunrise.GroupNameExtract(parser.line)
+		parser.ownership[group] = value
+		fmt.Printf("\n\t/* padOwnershipExtract: [offset 0x%x] %s = 0x%x */\n",
+				offset, name, parser.ownership[group])
+	}
+	return status
+}
+
+// padConfigurationExtract - reads GPIO configuration registers and returns true if the
+//                           information from the inteltool log was successfully parsed.
+func (parser *ParserData) padConfigurationExtract() bool {
+	// Only for Sunrise PCH and only for inteltool.log file template
+	if parser.Template != 0 || parser.Platform == "apollo" {
+		return false
+	}
+	return parser.padOwnershipExtract()
+}
+
 // Parse pads groupe information in the inteltool log file
 // ConfigFile : name of inteltool log file
 func (parser *ParserData) Parse() {
@@ -189,12 +214,12 @@ func (parser *ParserData) Parse() {
 	fmt.Println("Parse IntelTool Log File...")
 	scanner := bufio.NewScanner(parser.ConfigFile)
 	keywordFilterApply := parser.platformSpecKeywordCheckFuncGet()
-
+	parser.ownership = make(map[string]uint32)
 	for scanner.Scan() {
 		parser.line = scanner.Text()
 		if strings.Contains(parser.line, "GPIO Community") || strings.Contains(parser.line, "GPIO Group") {
 			parser.communityGroupExtract()
-		} else if keywordFilterApply(parser.line) {
+		} else if !parser.padConfigurationExtract() && keywordFilterApply(parser.line) {
 			if parser.padInfoExtract() != 0 {
 				fmt.Println("...error!")
 			}
