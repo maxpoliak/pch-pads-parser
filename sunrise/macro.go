@@ -11,9 +11,10 @@ import (
 // str   : macro string entirely
 // dwcfg : configuration data structure
 type macro struct {
-	padID string
-	str   string
+	padID  string
+	str    string
 	dwcfg
+	driver bool
 }
 
 // dw - returns dwcfg data configuration structure with PAD_CFG_DW0/1 register
@@ -150,6 +151,15 @@ func (macro *macro) bufdis() *macro {
 	return macro.separator().add(buffDisStat[state])
 }
 
+// Adds macro to set GPIO Driver Mode
+// return: macro
+func (macro *macro) drv() *macro {
+	if macro.driver {
+		macro.add("_DRIVER")
+	}
+	return macro
+}
+
 //Adds pad native function (PMODE) as a new argument
 //return: macro
 func (macro *macro) padfn() *macro {
@@ -169,7 +179,7 @@ func (macro *macro) addSuffixInput() {
 	switch {
 	case dw.getGPIOInputRouteNMI():
 		// e.g. PAD_CFG_GPI_NMI(GPIO_24, UP_20K, DEEP, LEVEL, INVERT),
-		macro.add("_NMI").add("(").id().pull().rstsrc().trig().invert()
+		macro.add("_NMI").drv().add("(").id().pull().rstsrc().trig().invert()
 
 	case dw.getGPIOInputRouteIOxAPIC():
 		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
@@ -179,7 +189,7 @@ func (macro *macro) addSuffixInput() {
 				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
 				macro.add("_INVERT")
 			}
-			macro.add("(").id().pull().rstsrc()
+			macro.drv().add("(").id().pull().rstsrc()
 		} else {
 			// PAD_CFG_GPI_APIC_IOS(GPP_C20, NONE, DEEP, LEVEL, INVERT,
 			// TxDRxE, DISPUPD) macro isn't used for this chipset. But, in
@@ -199,7 +209,7 @@ func (macro *macro) addSuffixInput() {
 			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SCI").add("(").id().pull().rstsrc()
+		macro.add("_SCI").drv().add("(").id().pull().rstsrc()
 		if (isEdge & 0x1) == 0 {
 			macro.trig()
 		}
@@ -210,19 +220,28 @@ func (macro *macro) addSuffixInput() {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SMI").add("(").id().pull().rstsrc()
+		macro.add("_SMI").drv().add("(").id().pull().rstsrc()
 		if (isEdge & 0x1) == 0 {
 			// e.g. PAD_CFG_GPI_SMI(GPP_E7, NONE, DEEP, LEVEL, NONE),
 			macro.trig()
 		}
 		macro.invert()
 
-	case isEdge != 0:
-		// e.g. ISH_SPI_CS#
-		// PAD_CFG_GPI_INT(GPP_D9, NONE, PLTRST, EDGE),
-		macro.add("_INT").add("(").id().pull().rstsrc().trig()
+	case isEdge != 0 || macro.driver:
+		if macro.driver {
+			// e.g. ISH_SPI_CS#
+			// PAD_CFG_GPI_INT(GPP_D9, NONE, PLTRST, EDGE),
+			macro.add("_INT").add("(").id().pull().rstsrc().trig()
+		} else {
+			// PAD_CFG_GPI_TRIG(pad, pull, rst, trig, inv)
+			macro.add("_TRIG").add("(").id().pull().rstsrc().trig().invert()
+		}
 
 	default:
+		if macro.driver {
+			// e. g. PAD_CFG_GPI_GPIO_DRIVER(GPIO_212, UP_20K, DEEP),
+			macro.add("_GPIO_DRIVER")
+		}
 		// e.g. PAD_CFG_GPI(GPP_A7, NONE, DEEP),
 		macro.add("(").id().pull().rstsrc()
 	}
@@ -236,11 +255,18 @@ func (macro *macro) addSuffixOutput() {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.add("_TERM")
 	}
-	macro.add("_GPO").add("(").id().val()
+	macro.add("_GPO")
+	if macro.driver {
+		macro.add("_GPIO_DRIVER")
+	}
+	macro.add("(").id().val()
 	if term != 0 {
 		macro.pull()
 	}
 	macro.rstsrc()
+	if macro.driver {
+		macro.pull()
+	}
 
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 	// See https://github.com/coreboot/coreboot/commit/3820e3c
@@ -284,7 +310,11 @@ func (macro *macro) common() *macro {
 	if macro.dw().getGPIOTXState() != 0 {
 		macro.add(" | 1")
 	}
-	return macro.add(",\n\t\tPAD_PULL(").pull().add(")),")
+	macro.add(",\n\t\t")
+	if macro.driver {
+		macro.add("PAD_CFG1_GPIO_DRIVER | ")
+	}
+	return macro.add("PAD_PULL(").pull().add(")),")
 }
 
 // Check created macro
@@ -338,7 +368,7 @@ func (macro *macro) generate() string {
 			// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
 			macro.add("_BUF_TRIG")
 		}
-		macro.add("(").id().pull().rstsrc().padfn()
+		macro.drv().add("(").id().pull().rstsrc().padfn()
 		if isEdge || isTxRxBufDis {
 			macro.bufdis().trig()
 		}
@@ -353,7 +383,7 @@ func (macro *macro) generate() string {
 // dw1 : DW1 config register value
 // return: string of macro
 //         error
-func GenMacro(id string, dw0 uint32, dw1 uint32) string {
-	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}}
+func GenMacro(id string, dw0 uint32, dw1 uint32, driver bool) string {
+	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}, driver : driver }
 	return macro.generate()
 }

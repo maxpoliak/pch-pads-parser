@@ -11,7 +11,7 @@ import (
 import "../sunrise"
 import "../apollo"
 
-type generateMacro func(id string, dw0 uint32, dw1 uint32) string
+type generateMacro func(id string, dw0 uint32, dw1 uint32, driver bool) string
 type keywordFilter func(line string) bool
 
 // padInfo - information about pad
@@ -68,7 +68,7 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
 	if len(info.function) > 0 {
 		fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 	}
-	fmt.Fprintf(gpio, "\t%s\n", genMacro(info.id, info.dw0, info.dw1))
+	fmt.Fprintf(gpio, "\t%s\n", genMacro(info.id, info.dw0, info.dw1, info.driver))
 }
 
 // ParserData - global data
