@@ -69,9 +69,10 @@ func main() {
 		"\t1 - gpio.h\n"+
 		"\t2 - your template\n\t")
 
-	platform :=  flag.String("p", "sunrise", "set up a platform\n"+
-		"\tsunrise - Sunrise PCH or Skylake/Kaby Lake SoC (default)\n"+
-		"\tapollo  - Apollo Lake SoC\n")
+	platform :=  flag.String("p", "snr", "set up a platform\n"+
+		"\tsnr - Sunrise PCH or Skylake/Kaby Lake SoC\n"+
+		"\tlbg - Lewisburg PCH with Xeon SP\n"+
+		"\tapl - Apollo Lake SoC\n")
 
 	flag.Parse()
 

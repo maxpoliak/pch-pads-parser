@@ -10,9 +10,9 @@ const (
 var key uint8 = SunriseType
 
 var platform = map[string]uint8{
-	"sunrise":   SunriseType,
-	"lewisburg": LewisburgType,
-	"apollo":    ApolloType}
+	"snr": SunriseType,
+	"lbg": LewisburgType,
+	"apl": ApolloType}
 
 func PlatformSet(name string) int {
 	if platformType, valid := platform[name]; valid {
