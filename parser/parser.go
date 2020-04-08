@@ -49,7 +49,7 @@ func (info *padInfo) reservedFprint(gpio *os.File) {
 // gpio : gpio.c file descriptor
 func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 	info.dw1 &= 0xffffff00
-	if info.driver { 
+	if info.driver {
 		info.dw1 |= 1 << 4
 	}
 	fmt.Fprintf(gpio,
