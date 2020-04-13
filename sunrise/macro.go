@@ -153,13 +153,13 @@ func (macro *macro) bufdis() *macro {
 	return macro.separator().add(buffDisStat[state])
 }
 
-// Adds macro to set GPIO Driver Mode
+// Adds macro to set the host software ownership
 // return: macro
-func (macro *macro) drv() *macro {
+func (macro *macro) own() *macro {
 	if macro.driver {
-		macro.add("_DRIVER")
+		return macro.separator().add("DRIVER")
 	}
-	return macro
+	return macro.separator().add("ACPI")
 }
 
 //Adds pad native function (PMODE) as a new argument
@@ -181,7 +181,7 @@ func (macro *macro) addSuffixInput() {
 	switch {
 	case dw.getGPIOInputRouteNMI():
 		// e.g. PAD_CFG_GPI_NMI(GPIO_24, UP_20K, DEEP, LEVEL, INVERT),
-		macro.add("_NMI").drv().add("(").id().pull().rstsrc().trig().invert()
+		macro.add("_NMI").add("(").id().pull().rstsrc().trig().invert()
 
 	case dw.getGPIOInputRouteIOxAPIC():
 		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
@@ -191,7 +191,7 @@ func (macro *macro) addSuffixInput() {
 				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
 				macro.add("_INVERT")
 			}
-			macro.drv().add("(").id().pull().rstsrc()
+			macro.add("(").id().pull().rstsrc()
 		} else {
 			// PAD_CFG_GPI_APIC_IOS(GPP_C20, NONE, DEEP, LEVEL, INVERT,
 			// TxDRxE, DISPUPD) macro isn't used for this chipset. But, in
@@ -211,7 +211,7 @@ func (macro *macro) addSuffixInput() {
 			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SCI").drv().add("(").id().pull().rstsrc()
+		macro.add("_SCI").add("(").id().pull().rstsrc()
 		if (isEdge & 0x1) == 0 {
 			macro.trig()
 		}
@@ -222,7 +222,7 @@ func (macro *macro) addSuffixInput() {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.add("_ACPI")
 		}
-		macro.add("_SMI").drv().add("(").id().pull().rstsrc()
+		macro.add("_SMI").add("(").id().pull().rstsrc()
 		if (isEdge & 0x1) == 0 {
 			// e.g. PAD_CFG_GPI_SMI(GPP_E7, NONE, DEEP, LEVEL, NONE),
 			macro.trig()
@@ -230,14 +230,8 @@ func (macro *macro) addSuffixInput() {
 		macro.invert()
 
 	case isEdge != 0 || macro.driver:
-		if macro.driver {
-			// e.g. ISH_SPI_CS#
-			// PAD_CFG_GPI_INT(GPP_D9, NONE, PLTRST, EDGE),
-			macro.add("_INT").add("(").id().pull().rstsrc().trig()
-		} else {
-			// PAD_CFG_GPI_TRIG(pad, pull, rst, trig, inv)
-			macro.add("_TRIG").add("(").id().pull().rstsrc().trig().invert()
-		}
+		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
+		macro.add("_TRIG_OWN").add("(").id().pull().rstsrc().trig().own()
 
 	default:
 		if macro.driver {
@@ -259,6 +253,7 @@ func (macro *macro) addSuffixOutput() {
 	}
 	macro.add("_GPO")
 	if macro.driver {
+		// PAD_CFG_GPO_GPIO_DRIVER(pad, val, rst, pull)
 		macro.add("_GPIO_DRIVER")
 	}
 	macro.add("(").id().val()
@@ -312,10 +307,7 @@ func (macro *macro) common() *macro {
 	if macro.dw().getGPIOTXState() != 0 {
 		macro.add(" | 1")
 	}
-	macro.add(",\n\t\t")
-	if macro.driver {
-		macro.add("PAD_CFG1_GPIO_DRIVER | ")
-	}
+	macro.add(",\n\t\tPAD_CFG_OWN_GPIO(").own().add(") | ")
 	return macro.add("PAD_PULL(").pull().add(")),")
 }
 
@@ -370,7 +362,7 @@ func (macro *macro) generate() string {
 			// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
 			macro.add("_BUF_TRIG")
 		}
-		macro.drv().add("(").id().pull().rstsrc().padfn()
+		macro.add("(").id().pull().rstsrc().padfn()
 		if isEdge || isTxRxBufDis {
 			macro.bufdis().trig()
 		}
@@ -386,6 +378,6 @@ func (macro *macro) generate() string {
 // return: string of macro
 //         error
 func GenMacro(id string, dw0 uint32, dw1 uint32, driver bool) string {
-	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}, driver : driver }
+	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}, driver : driver}
 	return macro.generate()
 }
