@@ -13,6 +13,7 @@ type macro struct {
 	padID string
 	str   string
 	dwcfg
+	driver bool
 }
 
 // dw - returns dwcfg data configuration structure with PAD_CFG_DW0/1 register
@@ -175,6 +176,15 @@ func (macro *macro) ioterm() *macro {
 }
 // end no common
 
+// Adds macro to set the host software ownership
+// return: macro
+func (macro *macro) own() *macro {
+	if macro.driver {
+		return macro.separator().add("DRIVER")
+	}
+	return macro.separator().add("ACPI")
+}
+
 //Adds pad native function (PMODE) as a new argument
 //return: macro
 func (macro *macro) padfn() *macro {
@@ -240,16 +250,17 @@ func (macro *macro) addSuffixInput() {
 			macro.add("_SMI").add("(").id().pull().rstsrc().trig().invert()
 		}
 
-	case isEdge != 0:
-		// e.g. ISH_SPI_CS#
-		// PAD_CFG_GPI_INT(GPP_D9, NONE, PLTRST, EDGE),
-		macro.add("_INT").add("(").id().pull().rstsrc().trig()
+	case isEdge != 0 || macro.driver:
+		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
+		macro.add("_TRIG_OWN").add("(").id().pull().rstsrc().trig().own()
 
 	default:
-		// no common
+		if macro.driver {
+			// e. g. PAD_CFG_GPI_GPIO_DRIVER(GPIO_212, UP_20K, DEEP),
+			macro.add("_GPIO_DRIVER")
+		}
 		// e.g. PAD_CFG_GPI(GPP_A7, NONE, DEEP),
 		macro.add("(").id().pull().rstsrc()
-		// end
 	}
 }
 
@@ -336,10 +347,9 @@ func (macro *macro) common() *macro {
 	if macro.dw().getGPIOTXState() != 0 {
 		macro.add(" | 1")
 	}
-
-	macro.add(",\n\t\tPAD_PULL(").pull().add(") | PAD_IOSSTATE(").iosstate()
-	macro.add(") | PAD_IOSTERM(").ioterm().add(")),")
-	return macro
+	macro.add(",\n\t\tPAD_CFG_OWN_GPIO(").own().add(") | ")
+	macro.add("PAD_PULL(").pull().add(") |\n\t\tPAD_IOSSTATE(").iosstate()
+	return macro.add(") | PAD_IOSTERM(").ioterm().add(")),")
 }
 
 // Check created macro
@@ -423,6 +433,6 @@ func (macro *macro) generate() string {
 // return: string of macro
 //         error
 func GenMacro(id string, dw0 uint32, dw1 uint32, driver bool) string {
-	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}}
+	macro := macro{padID: id, dwcfg: dwcfg{reg: [MaxDWNum]uint32{dw0, dw1}}, driver : driver}
 	return macro.generate()
 }
