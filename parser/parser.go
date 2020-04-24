@@ -167,17 +167,7 @@ func (parser *ParserData) PadMapFprint(gpio *os.File) {
 			}
 		}
 	}
-	gpio.WriteString("};\n")
-
-	// Add early configuration
-	gpio.WriteString(`/* Early pad configuration in romstage */
-static const struct pad_config early_gpio_table[] = {
-	/*
-	 * FIXME: This array cannot be generated automatically. Use macros here as
-	 * you see fit.
-	 */
-};
-`)
+	gpio.WriteString("};\n\n")
 }
 
 // Register - read specific platform registers (32 bits)
