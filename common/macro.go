@@ -153,6 +153,44 @@ func (macro *Macro) Padfn() *Macro {
 	return macro.Add("GPIO")
 }
 
+// Add a line to the macro that defines IO Standby State
+// return: macro
+func (macro *Macro) IOSstate() *Macro {
+	var stateMacro = map[uint8]string{
+		0x0: "TxLASTRxE",
+		0x1: "Tx0RxDCRx0",
+		0x2: "Tx0RxDCRx1",
+		0x3: "Tx1RxDCRx0",
+		0x4: "Tx1RxDCRx1",
+		0x5: "Tx0RxE",
+		0x6: "Tx1RxE",
+		0x7: "HIZCRx0",
+		0x8: "HIZCRx1",
+		0x9: "TxDRxE",
+		0xf: "IGNORE",
+	}
+	dw1 := macro.Register(PAD_CFG_DW1)
+	str, valid := stateMacro[dw1.GetIOStandbyState()]
+	if !valid {
+		// ignore setting for incorrect value
+		str = "IGNORE"
+	}
+	return macro.Separator().Add(str)
+}
+
+// Add a line to the macro that defines IO Standby Termination
+// return: macro
+func (macro *Macro) IOTerm() *Macro {
+	var ioTermMacro = map[uint8]string{
+		0x0: "SAME",
+		0x1: "DISPUPD",
+		0x2: "ENPD",
+		0x3: "ENPU",
+	}
+	dw1 := macro.Register(PAD_CFG_DW1)
+	return macro.Separator().Add(ioTermMacro[dw1.GetIOStandbyTermination()])
+}
+
 // Check created macro
 func check(macro *Macro) {
 	if !macro.Register(PAD_CFG_DW0).MaskCheck() {
