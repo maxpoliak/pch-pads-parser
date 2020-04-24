@@ -115,12 +115,12 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 			macro.Add("_SMI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
 		}
 
-	case isEdge != 0 || macro.Driver:
+	case isEdge != 0 || macro.IsOwnershipDriver():
 		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
 		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own()
 
 	default:
-		if macro.Driver {
+		if macro.IsOwnershipDriver() {
 			// e. g. PAD_CFG_GPI_GPIO_DRIVER(GPIO_212, UP_20K, DEEP),
 			macro.Add("_GPIO_DRIVER")
 		}
@@ -253,12 +253,11 @@ func (PlatformSpecific) AdvancedMacroGenerate(macro *common.Macro) {
 // dw1 : DW1 config register value
 // return: string of macro
 //         error
-func GenMacro(id string, dw0 uint32, dw1 uint32, driver bool) string {
+func GenMacro(id string, dw0 uint32, dw1 uint32, ownership uint8) string {
 	var macro common.Macro
 	// use platform-specific interface in Macro struct
 	macro.Platform = PlatformSpecific {}
-	macro.PadIdSet(id)
-	macro.Driver = driver
+	macro.PadIdSet(id).SetPadOwnership(ownership)
 	macro.Register(PAD_CFG_DW0).ValueSet(dw0).ReadOnlyFieldsSet(PAD_CFG_DW0_RO_FIELDS)
 	macro.Register(PAD_CFG_DW1).ValueSet(dw1).ReadOnlyFieldsSet(PAD_CFG_DW1_RO_FIELDS)
 	return macro.Generate()

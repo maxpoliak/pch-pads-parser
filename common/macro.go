@@ -5,6 +5,11 @@ import (
 	"strconv"
 )
 
+const (
+	PAD_OWN_ACPI   = 0
+	PAD_OWN_DRIVER = 1
+)
+
 // Platform - platform-specific interface
 type PlatformSpecific interface {
 	Rstsrc(macro *Macro)
@@ -21,19 +26,29 @@ type PlatformSpecific interface {
 // str      : macro string entirely
 // Reg      : structure of configuration register values and their masks
 type Macro struct {
-	Platform PlatformSpecific
-	Reg      [MAX_DW_NUM]Register
-	padID    string
-	str      string
-	Driver   bool
+	Platform  PlatformSpecific
+	Reg       [MAX_DW_NUM]Register
+	padID     string
+	str       string
+	ownership uint8
 }
 
 func (macro *Macro) PadIdGet() string {
 	return macro.padID
 }
 
-func (macro *Macro) PadIdSet(padid string) {
+func (macro *Macro) PadIdSet(padid string) *Macro {
 	macro.padID = padid
+	return macro
+}
+
+func (macro *Macro) SetPadOwnership(own uint8) *Macro {
+	macro.ownership = own
+	return macro
+}
+
+func (macro *Macro) IsOwnershipDriver() bool {
+	return macro.ownership == PAD_OWN_DRIVER
 }
 
 // returns <Register> data configuration structure
@@ -135,7 +150,7 @@ func (macro *Macro) Bufdis() *Macro {
 // Adds macro to set the host software ownership
 // return: Macro
 func (macro *Macro) Own() *Macro {
-	if macro.Driver {
+	if macro.IsOwnershipDriver() {
 		return macro.Separator().Add("DRIVER")
 	}
 	return macro.Separator().Add("ACPI")

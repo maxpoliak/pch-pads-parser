@@ -12,7 +12,7 @@ import "../sunrise"
 import "../apollo"
 import "../config"
 
-type generateMacro func(id string, dw0 uint32, dw1 uint32, driver bool) string
+type generateMacro func(id string, dw0 uint32, dw1 uint32, ownership uint8) string
 type keywordFilter func(line string) bool
 
 // padInfo - information about pad
@@ -27,7 +27,7 @@ type padInfo struct {
 	function string
 	dw0      uint32
 	dw1      uint32
-	driver   bool
+	ownership uint8
 }
 
 // titleFprint - print GPIO group title to file
@@ -49,7 +49,7 @@ func (info *padInfo) reservedFprint(gpio *os.File) {
 // gpio : gpio.c file descriptor
 func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 	info.dw1 &= 0xffffff00
-	if info.driver {
+	if info.ownership == 1 {
 		info.dw1 |= 1 << 4
 	}
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
@@ -66,7 +66,7 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
 	if len(info.function) > 0 {
 		fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 	}
-	fmt.Fprintf(gpio, "\t%s\n", genMacro(info.id, info.dw0, info.dw1, info.driver))
+	fmt.Fprintf(gpio, "\t%s\n", genMacro(info.id, info.dw0, info.dw1, info.ownership))
 }
 
 // ParserData - global data
@@ -104,13 +104,15 @@ func (parser *ParserData) padInfoExtract() int {
 	}
 	if applyTemplate, valid := template[parser.Template]; valid {
 		if applyTemplate(parser.line, &function, &id, &dw0, &dw1) == 0 {
-			var driver bool = false
+			var ownership uint8 = 0
 			status, group := parser.groupNameExtract(id)
 			if parser.Template == 0 && status {
 				numder, _ := strconv.Atoi(strings.TrimLeft(id, group))
-				driver = (parser.ownership[group] & (1 << uint8(numder))) != 0
+				if (parser.ownership[group] & (1 << uint8(numder))) != 0 {
+					ownership = 1
+				}
 			}
-			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1, driver: driver}
+			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1, ownership: ownership}
 			parser.padmap = append(parser.padmap, pad)
 			return 0
 		}
