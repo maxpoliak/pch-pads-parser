@@ -52,12 +52,9 @@ func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 	if info.driver {
 		info.dw1 |= 1 << 4
 	}
+	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 	fmt.Fprintf(gpio,
-		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x), /* %s */\n",
-		info.id,
-		info.dw0,
-		info.dw1, // Interrupt Select - RO
-		info.function)
+		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x),\n", info.id, info.dw0, info.dw1)
 }
 
 // padInfoMacroFprint - print information about current pad to file using
