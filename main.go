@@ -31,7 +31,6 @@ func CreateGpioCfgFile(parser *parser.ParserData) (err error) {
 	hrdFile.WriteString(`#ifndef CFG_GPIO_H
 #define CFG_GPIO_H
 
-#include <soc/gpe.h>
 #include <soc/gpio.h>
 `)
 	// Add the pads map
