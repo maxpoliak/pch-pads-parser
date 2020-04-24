@@ -12,8 +12,12 @@ import "../sunrise"
 import "../apollo"
 import "../config"
 
-type generateMacro func(id string, dw0 uint32, dw1 uint32, ownership uint8) string
-type keywordFilter func(line string) bool
+// PlatformSpecific - platform-specific interface
+type PlatformSpecific interface {
+	GenMacro(id string, dw0 uint32, dw1 uint32, ownership uint8) string
+	GroupNameExtract(line string) (bool, string)
+	KeywordCheck(line string) bool
+}
 
 // padInfo - information about pad
 // id       : pad id string
@@ -61,12 +65,13 @@ func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 // special macros:
 // /* GPP_F1 - SATAXPCIE4 */
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1),
-// gpio : gpio.c file descriptor
-func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
+// gpio  : gpio.c file descriptor
+// macro : string of the generated macro
+func (info *padInfo) padInfoMacroFprint(gpio *os.File, macro string) {
 	if len(info.function) > 0 {
 		fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
 	}
-	fmt.Fprintf(gpio, "\t%s\n", genMacro(info.id, info.dw0, info.dw1, info.ownership))
+	fmt.Fprintf(gpio, "\t%s\n", macro)
 }
 
 // ParserData - global data
@@ -76,20 +81,13 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File, genMacro generateMacro) {
 // RawFmt     : flag for generating pads config file with DW0/1 reg raw values
 // Template   : structure template type of ConfigFile
 type ParserData struct {
+	platform   PlatformSpecific
 	line       string
 	padmap     []padInfo
 	ownership  map[string]uint32
 	ConfigFile *os.File
 	RawFmt     bool
 	Template   int
-}
-
-// groupNameExtract
-func (parser *ParserData) groupNameExtract(padid string) (bool, string) {
-	if config.IsPlatformApollo() {
-		return false, ""
-	}
-	return sunrise.GroupNameExtract(padid)
 }
 
 // padInfoExtract - adds a new entry to pad info map
@@ -105,7 +103,7 @@ func (parser *ParserData) padInfoExtract() int {
 	if applyTemplate, valid := template[parser.Template]; valid {
 		if applyTemplate(parser.line, &function, &id, &dw0, &dw1) == 0 {
 			var ownership uint8 = 0
-			status, group := parser.groupNameExtract(id)
+			status, group := parser.platform.GroupNameExtract(id)
 			if parser.Template == 0 && status {
 				numder, _ := strconv.Atoi(strings.TrimLeft(id, group))
 				if (parser.ownership[group] & (1 << uint8(numder))) != 0 {
@@ -130,31 +128,21 @@ func (parser *ParserData) communityGroupExtract() {
 	parser.padmap = append(parser.padmap, pad)
 }
 
-// platformSpecMacroFuncGet - returns a platform specific macro generation function
-func (parser *ParserData) platformSpecMacroFuncGet() generateMacro {
-	if config.IsPlatformApollo() {
-		return apollo.GenMacro
+// PlatformSpecificInterfaceSet - specific interface for the platform selected
+// in the configuration
+func (parser *ParserData) PlatformSpecificInterfaceSet() {
+	if config.IsPlatformSunrise() || config.IsPlatformLewisburg() {
+		parser.platform = sunrise.PlatformSpecific{}
+	} else if config.IsPlatformApollo() {
+		parser.platform = apollo.PlatformSpecific{}
 	}
-	return sunrise.GenMacro
-}
-
-// platformSpecKeywordCheckFuncGet - returns a platform specific function to filter
-//                                   keywords
-func (parser *ParserData) platformSpecKeywordCheckFuncGet() keywordFilter {
-	if config.IsPlatformApollo() {
-		return apollo.KeywordCheck
-	}
-	return sunrise.KeywordCheck
 }
 
 // PadMapFprint - print pad info map to file
 // gpio : gpio.c descriptor file
-// raw  : in the case when this flag is false, pad information will be print
-//        as macro
 func (parser *ParserData) PadMapFprint(gpio *os.File) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
-	genMacro := parser.platformSpecMacroFuncGet()
 	for _, pad := range parser.padmap {
 		switch pad.dw0 {
 		case 0:
@@ -165,7 +153,8 @@ func (parser *ParserData) PadMapFprint(gpio *os.File) {
 			if parser.RawFmt {
 				pad.padInfoRawFprint(gpio)
 			} else {
-				pad.padInfoMacroFprint(gpio, genMacro)
+				macro := parser.platform.GenMacro(pad.id, pad.dw0, pad.dw1, pad.ownership)
+				pad.padInfoMacroFprint(gpio, macro)
 			}
 		}
 	}
@@ -198,7 +187,7 @@ func (parser *ParserData) padOwnershipExtract() bool {
 	var group string
 	status, name, offset, value := parser.Register("HOSTSW_OWN_GPP_")
 	if status {
-		_, group = sunrise.GroupNameExtract(parser.line)
+		_, group = parser.platform.GroupNameExtract(parser.line)
 		parser.ownership[group] = value
 		fmt.Printf("\n\t/* padOwnershipExtract: [offset 0x%x] %s = 0x%x */\n",
 				offset, name, parser.ownership[group])
@@ -221,14 +210,19 @@ func (parser *ParserData) padConfigurationExtract() bool {
 func (parser *ParserData) Parse() {
 	// Read all lines from inteltool log file
 	fmt.Println("Parse IntelTool Log File...")
-	scanner := bufio.NewScanner(parser.ConfigFile)
-	keywordFilterApply := parser.platformSpecKeywordCheckFuncGet()
+
+	// determine the platform type and set the interface for it
+	parser.PlatformSpecificInterfaceSet()
+
+	// map of thepad ownership registers for the GPIO controller
 	parser.ownership = make(map[string]uint32)
+
+	scanner := bufio.NewScanner(parser.ConfigFile)
 	for scanner.Scan() {
 		parser.line = scanner.Text()
 		if strings.Contains(parser.line, "GPIO Community") || strings.Contains(parser.line, "GPIO Group") {
 			parser.communityGroupExtract()
-		} else if !parser.padConfigurationExtract() && keywordFilterApply(parser.line) {
+		} else if !parser.padConfigurationExtract() && parser.platform.KeywordCheck(parser.line) {
 			if parser.padInfoExtract() != 0 {
 				fmt.Println("...error!")
 			}

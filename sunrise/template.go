@@ -9,7 +9,7 @@ import (
 // return
 //     bool   : true if the string contains a group identifier
 //     string : group identifier
-func GroupNameExtract(line string) (bool, string) {
+func (PlatformSpecific) GroupNameExtract(line string) (bool, string) {
 	for _, groupKeyword := range []string{
 		"GPP_A", "GPP_B", "GPP_F",
 		"GPP_C", "GPP_D", "GPP_E",
@@ -27,7 +27,7 @@ func GroupNameExtract(line string) (bool, string) {
 // KeywordCheck - This function is used to filter parsed lines of the configuration file and
 //                returns true if the keyword is contained in the line.
 // line      : string from the configuration file
-func KeywordCheck(line string) bool {
+func (PlatformSpecific) KeywordCheck(line string) bool {
 	for _, keyword := range []string{
 		"GPP_", "GPD",
 	} {

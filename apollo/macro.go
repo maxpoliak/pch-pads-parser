@@ -253,7 +253,7 @@ func (PlatformSpecific) AdvancedMacroGenerate(macro *common.Macro) {
 // dw1 : DW1 config register value
 // return: string of macro
 //         error
-func GenMacro(id string, dw0 uint32, dw1 uint32, ownership uint8) string {
+func (PlatformSpecific) GenMacro(id string, dw0 uint32, dw1 uint32, ownership uint8) string {
 	var macro common.Macro
 	// use platform-specific interface in Macro struct
 	macro.Platform = PlatformSpecific {}

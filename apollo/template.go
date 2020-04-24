@@ -4,10 +4,20 @@ import (
 	"strings"
 )
 
+// GroupNameExtract - This function extracts the group ID, if it exists in a row
+// line      : string from the configuration file
+// return
+//     bool   : true if the string contains a group identifier
+//     string : group identifier
+func (PlatformSpecific) GroupNameExtract(line string) (bool, string) {
+	// Not supported
+	return false, ""
+}
+
 // KeywordCheck - This function is used to filter parsed lines of the configuration file and
 //                returns true if the keyword is contained in the line.
 // line      : string from the configuration file
-func KeywordCheck(line string) bool {
+func (PlatformSpecific) KeywordCheck(line string) bool {
 	for _, keyword := range []string{
 		"GPIO_", "TCK", "TRST_B", "TMS", "TDI", "CX_PMODE", "CX_PREQ_B", "JTAGX", "CX_PRDY_B",
 		"TDO", "CNV_BRI_DT", "CNV_BRI_RSP", "CNV_RGI_DT", "CNV_RGI_RSP", "SVID0_ALERT_B",
