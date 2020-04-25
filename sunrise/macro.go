@@ -229,6 +229,9 @@ func (PlatformSpecific) AdvancedMacroGenerate(macro *common.Macro) {
 		macro.Add(" | 1")
 	}
 	macro.Add(",\n\t\tPAD_CFG_OWN_GPIO(").Own().Add(") | ").Add("PAD_PULL(").Pull().Add(")),")
+
+	fmt.Printf("\nNo configuration for pad: %s\n", macro.PadIdGet())
+	fmt.Printf("Use %s\n", macro.Get())
 }
 
 // GenMacro - generate pad macro

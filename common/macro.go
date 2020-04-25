@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -210,9 +209,6 @@ func (macro *Macro) IOTerm() *Macro {
 func check(macro *Macro) {
 	if !macro.Register(PAD_CFG_DW0).MaskCheck() {
 		macro.Platform.AdvancedMacroGenerate(macro)
-		// Debug message about this
-		fmt.Printf("\nNo configuration for pad: %s\n", macro.padID)
-		fmt.Printf("Use %s\n", macro.Get())
 	}
 }
 
