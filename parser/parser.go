@@ -20,17 +20,18 @@ type PlatformSpecific interface {
 }
 
 // padInfo - information about pad
-// id       : pad id string
-// offset   : the offset of the register address relative to the base
-// function : the string that means the pad function
-// dw0      : DW0 register value
-// dw1      : DW1 register value
+// id        : pad id string
+// offset    : the offset of the register address relative to the base
+// function  : the string that means the pad function
+// dw0       : DW0 register value
+// dw1       : DW1 register value
+// ownership : host software ownership
 type padInfo struct {
-	id       string
-	offset   uint16
-	function string
-	dw0      uint32
-	dw1      uint32
+	id        string
+	offset    uint16
+	function  string
+	dw0       uint32
+	dw1       uint32
 	ownership uint8
 }
 
@@ -90,8 +91,24 @@ type ParserData struct {
 	Template   int
 }
 
+// hostOwnershipGet - get the host software ownership value for the corresponding
+// pad ID
+// id : pad ID stirng
+// return the host software ownership form the parser struct
+func (parser *ParserData) hostOwnershipGet(id string) uint8 {
+	var ownership uint8 = 0
+	status, group := parser.platform.GroupNameExtract(id)
+	if parser.Template == 0 && status {
+		numder, _ := strconv.Atoi(strings.TrimLeft(id, group))
+		if (parser.ownership[group] & (1 << uint8(numder))) != 0 {
+			ownership = 1
+		}
+	}
+	return ownership
+}
+
 // padInfoExtract - adds a new entry to pad info map
-// line : string from file with pad config map
+// return error status
 func (parser *ParserData) padInfoExtract() int {
 	var function, id string
 	var dw0, dw1 uint32
@@ -102,15 +119,11 @@ func (parser *ParserData) padInfoExtract() int {
 	}
 	if applyTemplate, valid := template[parser.Template]; valid {
 		if applyTemplate(parser.line, &function, &id, &dw0, &dw1) == 0 {
-			var ownership uint8 = 0
-			status, group := parser.platform.GroupNameExtract(id)
-			if parser.Template == 0 && status {
-				numder, _ := strconv.Atoi(strings.TrimLeft(id, group))
-				if (parser.ownership[group] & (1 << uint8(numder))) != 0 {
-					ownership = 1
-				}
-			}
-			pad := padInfo{id: id, function: function, dw0: dw0, dw1: dw1, ownership: ownership}
+			pad := padInfo{id: id,
+					function: function,
+					dw0: dw0,
+					dw1: dw1,
+					ownership: parser.hostOwnershipGet(id)}
 			parser.padmap = append(parser.padmap, pad)
 			return 0
 		}
