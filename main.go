@@ -9,27 +9,24 @@ import (
 import "./parser"
 import "./config"
 
-// CreateGpioCfgFile - generates include file
+// generateOutputFile - generates include file
 // parser            : parser data structure
-func CreateGpioCfgFile(parser *parser.ParserData) (err error) {
-	hrdFile, err := os.Create("generate/gpio.h")
-	if err != nil {
-		fmt.Printf("Error!\n")
-		return err
-	}
-	defer hrdFile.Close()
+func generateOutputFile(parser *parser.ParserData) (err error) {
 
-	hrdFile.WriteString(`/* SPDX-License-Identifier: GPL-2.0-only */
+	config.OutputGenFile.WriteString(`/* SPDX-License-Identifier: GPL-2.0-only */
 /* This file is part of the coreboot project. */
 
 #ifndef CFG_GPIO_H
 #define CFG_GPIO_H
 
 #include <soc/gpio.h>
+
+/* Pad configuration  */
+static const struct pad_config gpio_table[] = {
 `)
 	// Add the pads map
-	parser.PadMapFprint(hrdFile)
-	hrdFile.WriteString(`
+	parser.PadMapFprint()
+	config.OutputGenFile.WriteString(`};
 
 #endif /* CFG_GPIO_H */
 `)
@@ -39,9 +36,14 @@ func CreateGpioCfgFile(parser *parser.ParserData) (err error) {
 // main
 func main() {
 	// Command line arguments
-	ConfigFile := flag.String("file",
+	inputFileName := flag.String("file",
 		"inteltool.log",
 		"the path to the inteltool log file")
+
+	outputFileName := flag.String("o",
+		"generate/gpio.h",
+		"the path to the generated file with GPIO configuration")
+
 	rawFlag := flag.Bool("raw",
 		false,
 		"generate macros with raw values of registers DW0, DW1")
@@ -65,14 +67,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("file:", *ConfigFile)
-	inteltoolConfigFile, err := os.Open(*ConfigFile)
+	fmt.Println("Log file:", *inputFileName)
+	fmt.Println("Output generated file:", *outputFileName)
+
+	inputRegDumpFile, err := os.Open(*inputFileName)
 	if err != nil {
 		fmt.Printf("Error: inteltool log file was not found!\n")
 		os.Exit(1)
 	}
-	config.PadConfigFileSet(inteltoolConfigFile)
-	defer inteltoolConfigFile.Close()
+	outputGenFile, err := os.Create(*outputFileName)
+	if err != nil {
+		fmt.Printf("Error: unable to generate GPIO config file!\n")
+		os.Exit(1)
+	}
+
+	defer inputRegDumpFile.Close()
+	defer outputGenFile.Close()
+
+	config.OutputGenFile = outputGenFile
+	config.InputRegDumpFile = inputRegDumpFile
 
 	parser := parser.ParserData{Template: *template}
 	parser.Parse()
@@ -85,7 +98,7 @@ func main() {
 	}
 
 	// gpio.h
-	err = CreateGpioCfgFile(&parser)
+	err = generateOutputFile(&parser)
 	if err != nil {
 		fmt.Printf("Error! Can not create the file with GPIO configuration!\n")
 		os.Exit(1)

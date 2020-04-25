@@ -15,7 +15,6 @@ var platform = map[string]uint8{
 	"snr": SunriseType,
 	"lbg": LewisburgType,
 	"apl": ApolloType}
-
 func PlatformSet(name string) int {
 	if platformType, valid := platform[name]; valid {
 		key = platformType
@@ -23,43 +22,29 @@ func PlatformSet(name string) int {
 	}
 	return -1
 }
-
 func PlatformGet() uint8 {
 	return key
 }
-
 func IsPlatform(platformType uint8) bool {
 	return platformType == key
 }
-
 func IsPlatformApollo() bool {
 	return IsPlatform(ApolloType)
 }
-
 func IsPlatformSunrise() bool {
 	return IsPlatform(SunriseType)
 }
-
 func IsPlatformLewisburg() bool {
 	return IsPlatform(LewisburgType)
 }
 
-var padConfigFile *os.File = nil
-
-func PadConfigFileSet(file *os.File) {
-	padConfigFile = file
-}
-
-func PadConfigFileGet() *os.File {
-	return padConfigFile
-}
+var InputRegDumpFile *os.File = nil
+var OutputGenFile *os.File = nil
 
 var useRawFormat bool = false
-
 func RawFormatFlagSet(flag bool) {
 	useRawFormat = flag
 }
-
 func IsRawFormatUsed() bool {
 	return useRawFormat
 }

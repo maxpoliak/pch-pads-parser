@@ -3,7 +3,6 @@ package parser
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 	"strconv"
 )
@@ -36,26 +35,26 @@ type padInfo struct {
 }
 
 // titleFprint - print GPIO group title to file
-func (info *padInfo) titleFprint(gpio *os.File) {
-	fmt.Fprintf(gpio, "\n\t/* %s */\n", info.function)
+func (info *padInfo) titleFprint() {
+	fmt.Fprintf(config.OutputGenFile, "\n\t/* %s */\n", info.function)
 }
 
 // reservedFprint - print reserved GPIO to file as comment
-func (info *padInfo) reservedFprint(gpio *os.File) {
+func (info *padInfo) reservedFprint() {
 	// small comment about reserved port
-	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
+	fmt.Fprintf(config.OutputGenFile, "\t/* %s - %s */\n", info.id, info.function)
 }
 
 // padInfoRawFprint - print information about current pad to file using
 // raw format:
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
-func (info *padInfo) padInfoRawFprint(gpio *os.File) {
+func (info *padInfo) padInfoRawFprint() {
 	info.dw1 &= 0xffffff00
 	if info.ownership == 1 {
 		info.dw1 |= 1 << 4
 	}
-	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
-	fmt.Fprintf(gpio,
+	fmt.Fprintf(config.OutputGenFile, "\t/* %s - %s */\n", info.id, info.function)
+	fmt.Fprintf(config.OutputGenFile,
 		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x),\n", info.id, info.dw0, info.dw1)
 }
 
@@ -65,11 +64,11 @@ func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1),
 // gpio  : gpio.c file descriptor
 // macro : string of the generated macro
-func (info *padInfo) padInfoMacroFprint(gpio *os.File, macro string) {
+func (info *padInfo) padInfoMacroFprint(macro string) {
 	if len(info.function) > 0 {
-		fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
+		fmt.Fprintf(config.OutputGenFile, "\t/* %s - %s */\n", info.id, info.function)
 	}
-	fmt.Fprintf(gpio, "\t%s\n", macro)
+	fmt.Fprintf(config.OutputGenFile, "\t%s\n", macro)
 }
 
 // ParserData - global data
@@ -146,25 +145,22 @@ func (parser *ParserData) PlatformSpecificInterfaceSet() {
 }
 
 // PadMapFprint - print pad info map to file
-func (parser *ParserData) PadMapFprint(gpio *os.File) {
-	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
-	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
+func (parser *ParserData) PadMapFprint() {
 	for _, pad := range parser.padmap {
 		switch pad.dw0 {
 		case 0:
-			pad.titleFprint(gpio)
+			pad.titleFprint()
 		case 0xffffffff:
-			pad.reservedFprint(gpio)
+			pad.reservedFprint()
 		default:
 			if config.IsRawFormatUsed() {
-				pad.padInfoRawFprint(gpio)
+				pad.padInfoRawFprint()
 			} else {
 				macro := parser.platform.GenMacro(pad.id, pad.dw0, pad.dw1, pad.ownership)
-				pad.padInfoMacroFprint(gpio, macro)
+				pad.padInfoMacroFprint(macro)
 			}
 		}
 	}
-	gpio.WriteString("};\n\n")
 }
 
 // Register - read specific platform registers (32 bits)
@@ -223,7 +219,7 @@ func (parser *ParserData) Parse() {
 	// map of thepad ownership registers for the GPIO controller
 	parser.ownership = make(map[string]uint32)
 
-	scanner := bufio.NewScanner(config.PadConfigFileGet())
+	scanner := bufio.NewScanner(config.InputRegDumpFile)
 	for scanner.Scan() {
 		parser.line = scanner.Text()
 		if strings.Contains(parser.line, "GPIO Community") || strings.Contains(parser.line, "GPIO Group") {
