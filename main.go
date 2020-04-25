@@ -63,17 +63,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Println("file:", *ConfigFile)
 	inteltoolConfigFile, err := os.Open(*ConfigFile)
 	if err != nil {
 		fmt.Printf("Error: inteltool log file was not found!\n")
 		os.Exit(1)
 	}
+	config.PadConfigFileSet(inteltoolConfigFile)
 	defer inteltoolConfigFile.Close()
-	fmt.Println("file:", *ConfigFile)
 
-	parser := parser.ParserData{RawFmt: *rawFlag,
-		ConfigFile: inteltoolConfigFile,
-		Template:   *template}
+	parser := parser.ParserData{RawFmt: *rawFlag, Template: *template}
 	parser.Parse()
 
 	// create dir for output files

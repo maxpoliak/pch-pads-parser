@@ -1,5 +1,7 @@
 package config
 
+import "os"
+
 // platform type constants
 const (
 	SunriseType   uint8  = 0
@@ -40,4 +42,14 @@ func IsPlatformSunrise() bool {
 
 func IsPlatformLewisburg() bool {
 	return IsPlatform(LewisburgType)
+}
+
+var padConfigFile *os.File = nil
+
+func PadConfigFileSet(file *os.File) {
+	padConfigFile = file
+}
+
+func PadConfigFileGet() *os.File {
+	return padConfigFile
 }

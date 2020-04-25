@@ -36,13 +36,11 @@ type padInfo struct {
 }
 
 // titleFprint - print GPIO group title to file
-// gpio : gpio.c file descriptor
 func (info *padInfo) titleFprint(gpio *os.File) {
 	fmt.Fprintf(gpio, "\n\t/* %s */\n", info.function)
 }
 
 // reservedFprint - print reserved GPIO to file as comment
-// gpio : gpio.c file descriptor
 func (info *padInfo) reservedFprint(gpio *os.File) {
 	// small comment about reserved port
 	fmt.Fprintf(gpio, "\t/* %s - %s */\n", info.id, info.function)
@@ -51,7 +49,6 @@ func (info *padInfo) reservedFprint(gpio *os.File) {
 // padInfoRawFprint - print information about current pad to file using
 // raw format:
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
-// gpio : gpio.c file descriptor
 func (info *padInfo) padInfoRawFprint(gpio *os.File) {
 	info.dw1 &= 0xffffff00
 	if info.ownership == 1 {
@@ -78,7 +75,6 @@ func (info *padInfo) padInfoMacroFprint(gpio *os.File, macro string) {
 // ParserData - global data
 // line       : string from the configuration file
 // padmap     : pad info map
-// ConfigFile : file name with pad configuration in text form
 // RawFmt     : flag for generating pads config file with DW0/1 reg raw values
 // Template   : structure template type of ConfigFile
 type ParserData struct {
@@ -86,7 +82,6 @@ type ParserData struct {
 	line       string
 	padmap     []padInfo
 	ownership  map[string]uint32
-	ConfigFile *os.File
 	RawFmt     bool
 	Template   int
 }
@@ -152,7 +147,6 @@ func (parser *ParserData) PlatformSpecificInterfaceSet() {
 }
 
 // PadMapFprint - print pad info map to file
-// gpio : gpio.c descriptor file
 func (parser *ParserData) PadMapFprint(gpio *os.File) {
 	gpio.WriteString("\n/* Pad configuration in ramstage */\n")
 	gpio.WriteString("static const struct pad_config gpio_table[] = {\n")
@@ -230,7 +224,7 @@ func (parser *ParserData) Parse() {
 	// map of thepad ownership registers for the GPIO controller
 	parser.ownership = make(map[string]uint32)
 
-	scanner := bufio.NewScanner(parser.ConfigFile)
+	scanner := bufio.NewScanner(config.PadConfigFileGet())
 	for scanner.Scan() {
 		parser.line = scanner.Text()
 		if strings.Contains(parser.line, "GPIO Community") || strings.Contains(parser.line, "GPIO Group") {
