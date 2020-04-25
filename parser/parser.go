@@ -82,7 +82,6 @@ type ParserData struct {
 	line       string
 	padmap     []padInfo
 	ownership  map[string]uint32
-	RawFmt     bool
 	Template   int
 }
 
@@ -157,7 +156,7 @@ func (parser *ParserData) PadMapFprint(gpio *os.File) {
 		case 0xffffffff:
 			pad.reservedFprint(gpio)
 		default:
-			if parser.RawFmt {
+			if config.IsRawFormatUsed() {
 				pad.padInfoRawFprint(gpio)
 			} else {
 				macro := parser.platform.GenMacro(pad.id, pad.dw0, pad.dw1, pad.ownership)

@@ -58,6 +58,8 @@ func main() {
 
 	flag.Parse()
 
+	config.RawFormatFlagSet(*rawFlag)
+
 	if valid := config.PlatformSet(*platform); valid != 0 {
 		fmt.Printf("Error: invalid platform!\n")
 		os.Exit(1)
@@ -72,7 +74,7 @@ func main() {
 	config.PadConfigFileSet(inteltoolConfigFile)
 	defer inteltoolConfigFile.Close()
 
-	parser := parser.ParserData{RawFmt: *rawFlag, Template: *template}
+	parser := parser.ParserData{Template: *template}
 	parser.Parse()
 
 	// create dir for output files

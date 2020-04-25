@@ -53,3 +53,13 @@ func PadConfigFileSet(file *os.File) {
 func PadConfigFileGet() *os.File {
 	return padConfigFile
 }
+
+var useRawFormat bool = false
+
+func RawFormatFlagSet(flag bool) {
+	useRawFormat = flag
+}
+
+func IsRawFormatUsed() bool {
+	return useRawFormat
+}
