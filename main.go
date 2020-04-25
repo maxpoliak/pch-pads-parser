@@ -9,14 +9,6 @@ import (
 import "./parser"
 import "./config"
 
-// HdrInfoAdd - adds license header to file f
-func HdrInfoAdd(f *os.File) {
-	f.WriteString(`/* SPDX-License-Identifier: GPL-2.0-only */
-/* This file is part of the coreboot project. */
-
-`)
-}
-
 // CreateGpioCfgFile - generates include file
 // parser            : parser data structure
 func CreateGpioCfgFile(parser *parser.ParserData) (err error) {
@@ -27,8 +19,10 @@ func CreateGpioCfgFile(parser *parser.ParserData) (err error) {
 	}
 	defer hrdFile.Close()
 
-	HdrInfoAdd(hrdFile)
-	hrdFile.WriteString(`#ifndef CFG_GPIO_H
+	hrdFile.WriteString(`/* SPDX-License-Identifier: GPL-2.0-only */
+/* This file is part of the coreboot project. */
+
+#ifndef CFG_GPIO_H
 #define CFG_GPIO_H
 
 #include <soc/gpio.h>
