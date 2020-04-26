@@ -27,7 +27,7 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
 
 	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
-		// The pads from the GPD group in the Sunrise point PCH have a specific Pad 
+		// The pads from the GPD group in the Sunrise point PCH have a specific Pad
 		// Reset Config Map, which differs from that in other groups. PADRSTCFG field
 		// in PAD_CFG_DW0 register should implements 3h value as RSMRST and 0h as PWROK
 		var gpdResetSrcMap = map[uint8]string{
