@@ -233,13 +233,8 @@ func (macro *Macro) Generate() string {
 
 		case rxDisable | txDisable:
 			// NC
-			macro.Set("PAD_NC").Add("(").Id().Pull()
-			// Fix mask for RX Level/Edge Configuration (RXEVCFG)
-			// and Pad Reset Config (PADRSTCFG)
-			// There is no need to check these fields if the pad
-			// is in the NC state
-			dw0.MaskResetFix().MaskTrigFix()
-			macro.Add("),")
+			macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
+			return macro.Get()
 
 		default:
 			// In case the rule isn't found, a common macro is used
