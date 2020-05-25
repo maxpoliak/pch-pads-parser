@@ -27,7 +27,7 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
 
 	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
-		// The pads from the GPD group in the Sunrise point PCH have a specific Pad
+		// The pads from the GPD group in the Sunrise Point PCH have a specific Pad
 		// Reset Config Map, which differs from that in other groups. PADRSTCFG field
 		// in PAD_CFG_DW0 register should implements 3h value as RSMRST and 0h as PWROK
 		var gpdResetSrcMap = map[uint8]string{
@@ -157,20 +157,11 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.Add("_TERM")
 	}
-	macro.Add("_GPO")
-	if macro.IsOwnershipDriver() {
-		// PAD_CFG_GPO_GPIO_DRIVER(pad, val, rst, pull)
-		macro.Add("_GPIO_DRIVER")
-	}
-	macro.Add("(").Id().Val()
+	macro.Add("_GPO").Add("(").Id().Val()
 	if term != 0 {
 		macro.Pull()
 	}
-	macro.Rstsrc()
-	if macro.IsOwnershipDriver() {
-		macro.Pull()
-	}
-	macro.Add("),")
+	macro.Rstsrc().Add("),")
 
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 	// See https://github.com/coreboot/coreboot/commit/3820e3c
