@@ -193,6 +193,12 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 	macro.Add("),")
 }
 
+// Adds PAD_NC macro
+func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
+	// PAD_NC(OSC_CLK_OUT_1, DN_20K)
+	macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
+}
+
 // Generates "Advanced" macro if the standard ones can't define the values from
 // the DW0/1 register
 func (PlatformSpecific) AdvancedMacroGenerate(macro *common.Macro) {
