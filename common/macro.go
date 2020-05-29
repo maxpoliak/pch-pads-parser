@@ -9,6 +9,19 @@ const (
 	PAD_OWN_DRIVER = 1
 )
 
+const (
+	TxLASTRxE  = 0x0
+	Tx0RxDCRx0 = 0x1
+	Tx0RxDCRx1 = 0x2
+	Tx1RxDCRx0 = 0x3
+	Tx1RxDCRx1 = 0x4
+	Tx0RxE     = 0x5
+	Tx1RxE     = 0x6
+	HIZCRx0    = 0x7
+	HIZCRx1    = 0x8
+	TxDRxE     = 0x9
+)
+
 // Platform - platform-specific interface
 type PlatformSpecific interface {
 	Rstsrc(macro *Macro)
@@ -16,6 +29,7 @@ type PlatformSpecific interface {
 	GpiMacroAdd(macro *Macro)
 	GpoMacroAdd(macro *Macro)
 	NativeFunctionMacroAdd(macro *Macro)
+	NoConnMacroAdd(macro *Macro)
 	AdvancedMacroGenerate(macro *Macro)
 }
 
@@ -171,17 +185,17 @@ func (macro *Macro) Padfn() *Macro {
 // return: macro
 func (macro *Macro) IOSstate() *Macro {
 	var stateMacro = map[uint8]string{
-		0x0: "TxLASTRxE",
-		0x1: "Tx0RxDCRx0",
-		0x2: "Tx0RxDCRx1",
-		0x3: "Tx1RxDCRx0",
-		0x4: "Tx1RxDCRx1",
-		0x5: "Tx0RxE",
-		0x6: "Tx1RxE",
-		0x7: "HIZCRx0",
-		0x8: "HIZCRx1",
-		0x9: "TxDRxE",
-		0xf: "IGNORE",
+		TxLASTRxE:  "TxLASTRxE",
+		Tx0RxDCRx0: "Tx0RxDCRx0",
+		Tx0RxDCRx1: "Tx0RxDCRx1",
+		Tx1RxDCRx0: "Tx1RxDCRx0",
+		Tx1RxDCRx1: "Tx1RxDCRx1",
+		Tx0RxE:     "Tx0RxE",
+		Tx1RxE:     "Tx1RxE",
+		HIZCRx0:    "HIZCRx0",
+		HIZCRx1:    "HIZCRx1",
+		TxDRxE:     "TxDRxE",
+		0xf:        "IGNORE",
 	}
 	dw1 := macro.Register(PAD_CFG_DW1)
 	str, valid := stateMacro[dw1.GetIOStandbyState()]
@@ -232,8 +246,7 @@ func (macro *Macro) Generate() string {
 			macro.Platform.GpoMacroAdd(macro) // GPO
 
 		case rxDisable | txDisable:
-			// NC
-			macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
+			macro.Platform.NoConnMacroAdd(macro) // NC
 			return macro.Get()
 
 		default:

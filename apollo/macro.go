@@ -135,13 +135,6 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 	dw0 :=  macro.Register(PAD_CFG_DW0)
 	dw1 :=  macro.Register(PAD_CFG_DW1)
 	term := dw1.GetTermination()
-	if dw0.GetGPIORxTxDisableStatus() == 3 {
-		// if Rx and Tx buffers are disabled
-		// e.g. PAD_CFG_GPIO_HI_Z(GPIO_91, NATIVE, DEEP, IGNORE, SAME),
-		macro.Add("_GPIO_HI_Z").Id().Pull().Rstsrc().IOSstate().IOTerm().Add("),")
-		return
-	}
-	// FIXME: add _DRIVER(..)
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.Add("_TERM")
@@ -195,8 +188,19 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 
 // Adds PAD_NC macro
 func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
-	// PAD_NC(OSC_CLK_OUT_1, DN_20K)
-	macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
+	iosstate := macro.Register(PAD_CFG_DW1).GetIOStandbyState()
+	if iosstate == common.TxDRxE {
+		// PAD_NC(OSC_CLK_OUT_1, DN_20K)
+		macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
+		return
+	}
+	// PAD_CFG_GPIO_HI_Z(GPIO_81, UP_20K, DEEP, HIZCRx0, DISPUPD),
+	macro.Set("PAD_CFG_GPIO_")
+	if macro.IsOwnershipDriver() {
+		// PAD_CFG_GPIO_DRIVER_HI_Z(GPIO_55, UP_20K, DEEP, HIZCRx1, ENPU),
+		macro.Add("DRIVER_")
+	}
+	macro.Add("HI_Z(").Id().Pull().Rstsrc().IOSstate().IOTerm().Add("),")
 }
 
 // Generates "Advanced" macro if the standard ones can't define the values from
