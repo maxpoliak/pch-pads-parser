@@ -174,33 +174,21 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 
 // Adds PAD_CFG_NF macro with arguments
 func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
-	dw0 :=  macro.Register(PAD_CFG_DW0)
-	dw1 :=  macro.Register(PAD_CFG_DW1)
-	isEdge := dw0.GetRXLevelEdgeConfiguration() != 0
-	isTxRxBufDis := dw0.GetGPIORxTxDisableStatus() != 0
+	dw1 := macro.Register(PAD_CFG_DW1)
 	isIOStandbyStateUsed := dw1.GetIOStandbyState() != 0
 	isIOStandbyTerminationUsed := dw1.GetIOStandbyTermination() != 0
 	macro.Add("_NF")
-	if !isEdge || !isTxRxBufDis {
-		if !isIOStandbyTerminationUsed {
-			// PAD_CFG_NF_IOSSTATE(GPIO_22, UP_20K, DEEP, NF2, TxDRxE),
-			macro.Add("_IOSSTATE")
-			macro.Add("(").Id().Pull().Rstsrc().Padfn().IOSstate().Add("),")
-			return
-		}
+	if !isIOStandbyTerminationUsed && isIOStandbyStateUsed {
+		// PAD_CFG_NF_IOSSTATE(GPIO_22, UP_20K, DEEP, NF2, TxDRxE),
+		macro.Add("_IOSSTATE")
+		macro.Add("(").Id().Pull().Rstsrc().Padfn().IOSstate()
+	} else if isIOStandbyTerminationUsed {
+		// PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_103, NATIVE, DEEP, NF1, MASK, SAME),
+		macro.Add("_IOSSTATE_IOSTERM")
+		macro.Add("(").Id().Pull().Rstsrc().Padfn().IOSstate().IOTerm()
+	} else {
 		// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 		macro.Add("(").Id().Pull().Rstsrc().Padfn()
-	} else {
-		macro.Add("_BUF")
-		if !isIOStandbyStateUsed && !isIOStandbyTerminationUsed {
-			// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
-			macro.Add("_TRIG").Add("(").Id().Pull().Rstsrc().Padfn().Bufdis().Trig()
-		} else {
-			// PAD_CFG_NF_BUF_IOSSTATE_IOSTERM(GPIO_103, NATIVE, DEEP, NF1,
-			//         TX_DISABLE, MASK, SAME),
-			macro.Add("_IOSSTATE_IOSTERM").Add("(").Id().Pull().Rstsrc().Padfn()
-			macro.Bufdis().IOSstate().IOTerm()
-		}
 	}
 	macro.Add("),")
 }
