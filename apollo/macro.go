@@ -111,15 +111,20 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 			macro.Add("_ACPI_SMI").Add("(").Id().Pull().Rstsrc().Invert()
 		} else {
-			// e. g. PAD_CFG_GPI_SMI(GPP_E3, NONE, PLTRST, EDGE_SINGLE, NONE),
+			// e.g. PAD_CFG_GPI_SMI(GPP_E3, NONE, PLTRST, EDGE_SINGLE, NONE),
 			macro.Add("_SMI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
 		}
 
-	case isEdge != 0 || macro.IsOwnershipDriver():
-		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
-		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own()
-
 	default:
+		if dw0.GetIOStandbyState() != common.TxDRxE || dw0.GetIOStandbyTermination() != 0 {
+			// e.g. PAD_CFG_GPI_IOSSTATE_IOSTERM(pad, pull, rst, iosstate, iosterm)
+			macro.Add("_IOSSTATE_IOSTERM(").Id().Pull().Rstsrc().IOSstate().IOTerm().Add("),")
+			return
+		}
+		if isEdge != 0 || macro.IsOwnershipDriver() {
+			// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
+			macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own()
+		}
 		if macro.IsOwnershipDriver() {
 			// e. g. PAD_CFG_GPI_GPIO_DRIVER(GPIO_212, UP_20K, DEEP),
 			macro.Add("_GPIO_DRIVER")
@@ -135,31 +140,20 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 	dw0 :=  macro.Register(PAD_CFG_DW0)
 	dw1 :=  macro.Register(PAD_CFG_DW1)
 	term := dw1.GetTermination()
-	if term != 0 {
-		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
-		macro.Add("_TERM")
-	}
-	macro.Add("_GPO")
 	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
 		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
-		macro.Add("_IOSSTATE").Add("_IOSTERM")
+		macro.Add("_IOSSTATE_IOSTERM(").Id().Val().Pull().IOSstate().IOTerm()
+	} else {
 		if term != 0 {
-			// PAD_CFG_TERM_GPO_IOSSTATE_IOSTERM(PMU_WAKE_B, 0, 20K_PU, DEEP, IGNORE, SAME),
-			// in this case create common macro
-			return
+			// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
+			macro.Add("_TERM")
 		}
+		macro.Add("_GPO(").Id().Val()
+		if term != 0 {
+			macro.Pull()
+		}
+		macro.Rstsrc().Add("),")
 	}
-	macro.Add("(").Id().Val()
-	if term != 0 {
-		macro.Pull()
-	}
-	macro.Rstsrc()
-	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
-		// e.g. FST_SPI_CS1_B -- SPK_PA_EN_R
-		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
-		macro.IOSstate().IOTerm()
-	}
-	macro.Add("),")
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
 	// See https://github.com/coreboot/coreboot/commit/3820e3c
 	dw0.MaskTrigFix()
