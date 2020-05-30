@@ -166,13 +166,16 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 	isIOStandbyTerminationUsed := dw1.GetIOStandbyTermination() != 0
 	macro.Add("_NF")
 	if !isIOStandbyTerminationUsed && isIOStandbyStateUsed {
-		// PAD_CFG_NF_IOSSTATE(GPIO_22, UP_20K, DEEP, NF2, TxDRxE),
-		macro.Add("_IOSSTATE")
-		macro.Add("(").Id().Pull().Rstsrc().Padfn().IOSstate()
+		if dw1.GetIOStandbyState() == common.StandbyIgnore {
+			// PAD_CFG_NF_IOSTANDBY_IGNORE(PMU_SLP_S0_B, NONE, DEEP, NF1),
+			macro.Add("_IOSTANDBY_IGNORE(").Id().Pull().Rstsrc().Padfn()
+		} else {
+			// PAD_CFG_NF_IOSSTATE(GPIO_22, UP_20K, DEEP, NF2, TxDRxE),
+			macro.Add("_IOSSTATE(").Id().Pull().Rstsrc().Padfn().IOSstate()
+		}
 	} else if isIOStandbyTerminationUsed {
 		// PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_103, NATIVE, DEEP, NF1, MASK, SAME),
-		macro.Add("_IOSSTATE_IOSTERM")
-		macro.Add("(").Id().Pull().Rstsrc().Padfn().IOSstate().IOTerm()
+		macro.Add("_IOSSTATE_IOSTERM(").Id().Pull().Rstsrc().Padfn().IOSstate().IOTerm()
 	} else {
 		// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 		macro.Add("(").Id().Pull().Rstsrc().Padfn()

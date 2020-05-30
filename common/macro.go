@@ -10,16 +10,17 @@ const (
 )
 
 const (
-	TxLASTRxE  = 0x0
-	Tx0RxDCRx0 = 0x1
-	Tx0RxDCRx1 = 0x2
-	Tx1RxDCRx0 = 0x3
-	Tx1RxDCRx1 = 0x4
-	Tx0RxE     = 0x5
-	Tx1RxE     = 0x6
-	HIZCRx0    = 0x7
-	HIZCRx1    = 0x8
-	TxDRxE     = 0x9
+	TxLASTRxE     = 0x0
+	Tx0RxDCRx0    = 0x1
+	Tx0RxDCRx1    = 0x2
+	Tx1RxDCRx0    = 0x3
+	Tx1RxDCRx1    = 0x4
+	Tx0RxE        = 0x5
+	Tx1RxE        = 0x6
+	HIZCRx0       = 0x7
+	HIZCRx1       = 0x8
+	TxDRxE        = 0x9
+	StandbyIgnore = 0xf
 )
 
 // Platform - platform-specific interface
@@ -185,17 +186,17 @@ func (macro *Macro) Padfn() *Macro {
 // return: macro
 func (macro *Macro) IOSstate() *Macro {
 	var stateMacro = map[uint8]string{
-		TxLASTRxE:  "TxLASTRxE",
-		Tx0RxDCRx0: "Tx0RxDCRx0",
-		Tx0RxDCRx1: "Tx0RxDCRx1",
-		Tx1RxDCRx0: "Tx1RxDCRx0",
-		Tx1RxDCRx1: "Tx1RxDCRx1",
-		Tx0RxE:     "Tx0RxE",
-		Tx1RxE:     "Tx1RxE",
-		HIZCRx0:    "HIZCRx0",
-		HIZCRx1:    "HIZCRx1",
-		TxDRxE:     "TxDRxE",
-		0xf:        "IGNORE",
+		TxLASTRxE:     "TxLASTRxE",
+		Tx0RxDCRx0:    "Tx0RxDCRx0",
+		Tx0RxDCRx1:    "Tx0RxDCRx1",
+		Tx1RxDCRx0:    "Tx1RxDCRx0",
+		Tx1RxDCRx1:    "Tx1RxDCRx1",
+		Tx0RxE:        "Tx0RxE",
+		Tx1RxE:        "Tx1RxE",
+		HIZCRx0:       "HIZCRx0",
+		HIZCRx1:       "HIZCRx1",
+		TxDRxE:        "TxDRxE",
+		StandbyIgnore: "IGNORE",
 	}
 	dw1 := macro.Register(PAD_CFG_DW1)
 	str, valid := stateMacro[dw1.GetIOStandbyState()]
