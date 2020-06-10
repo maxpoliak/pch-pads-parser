@@ -129,14 +129,14 @@ func (reg *Register) GetResetConfig() uint8 {
 // getRXPadStateSelect - returns RX Pad State (RXINV)
 // 0 = Raw RX pad state directly from RX buffer
 // 1 = Internal RX pad state
-func (reg *Register) GetRXPadStateSelect() uint8 {
-	return reg.getFieldVal(rxPadStateSelectMask, rxPadStateSelectShift)
+func (reg *Register) GetRXPadStateSelect() bool {
+	return reg.getFieldVal(rxPadStateSelectMask, rxPadStateSelectShift) != 0
 }
 
 // getRXRawOverrideStatus - returns 1 if the selected pad state is being
 // overridden to '1' (RXRAW1 field)
-func (reg *Register) GetRXRawOverrideStatus() uint8 {
-	return reg.getFieldVal(rxRawOverrideTo1Mask, rxRawOverrideTo1Shift)
+func (reg *Register) GetRXRawOverrideStatus() bool {
+	return reg.getFieldVal(rxRawOverrideTo1Mask, rxRawOverrideTo1Shift) != 0
 }
 
 // getRXLevelEdgeConfiguration - returns RX Level/Edge Configuration (RXEVCFG)
