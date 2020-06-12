@@ -220,15 +220,15 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 
 	// Add to the macro name all the other parameters that affect the pad in
 	// native function mode. The user should decide whether to use them or not.
-	if dw0.GetRXLevelConfiguration() {
+	if dw0.GetRXLevelConfiguration() != 0 {
 		// RX Invert state (RXINV)
 		macro.Add("_INVERT")
 	}
-	if dw0.GetRXRawOverrideStatus() {
+	if dw0.GetRXRawOverrideStatus() != 0 {
 		// check RXRAW1 field
 		macro.Add("_RXRAW")
 	}
-	if dw0.GetRXPadStateSelect() {
+	if dw0.GetRXPadStateSelect() != 0 {
 		// check RX Pad State (RXINV)
 		macro.Add("_RXPADSTSEL")
 	}

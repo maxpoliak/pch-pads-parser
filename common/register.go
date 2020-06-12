@@ -129,14 +129,14 @@ func (reg *Register) GetResetConfig() uint8 {
 // getRXPadStateSelect - returns RX Pad State (RXINV)
 // 0 = Raw RX pad state directly from RX buffer
 // 1 = Internal RX pad state
-func (reg *Register) GetRXPadStateSelect() bool {
-	return reg.getFieldVal(rxPadStateSelectMask, rxPadStateSelectShift) != 0
+func (reg *Register) GetRXPadStateSelect() uint8 {
+	return reg.getFieldVal(rxPadStateSelectMask, rxPadStateSelectShift)
 }
 
 // getRXRawOverrideStatus - returns 1 if the selected pad state is being
 // overridden to '1' (RXRAW1 field)
-func (reg *Register) GetRXRawOverrideStatus() bool {
-	return reg.getFieldVal(rxRawOverrideTo1Mask, rxRawOverrideTo1Shift) != 0
+func (reg *Register) GetRXRawOverrideStatus() uint8 {
+	return reg.getFieldVal(rxRawOverrideTo1Mask, rxRawOverrideTo1Shift)
 }
 
 // getRXLevelEdgeConfiguration - returns RX Level/Edge Configuration (RXEVCFG)
@@ -147,8 +147,8 @@ func (reg *Register) GetRXLevelEdgeConfiguration() uint8 {
 
 // getRXLevelConfiguration - returns RX Invert state (RXINV)
 // 1 - Inversion, 0 - No inversion
-func (reg *Register) GetRXLevelConfiguration() bool {
-	return reg.getFieldVal(rxInvertMask, rxInvertShift) != 0
+func (reg *Register) GetRXLevelConfiguration() uint8 {
+	return reg.getFieldVal(rxInvertMask, rxInvertShift)
 }
 
 // getRxTxEnableConfig - returns RX/TX Enable Config (RXTXENCFG)
@@ -162,26 +162,26 @@ func (reg *Register) GetRxTxEnableConfig() uint8 {
 
 // getGPIOInputRouteIOxAPIC - returns 1 if the pad can be routed to cause
 // peripheral IRQ when configured in GPIO input mode.
-func (reg *Register) GetGPIOInputRouteIOxAPIC() bool {
-	return reg.getFieldVal(gpioInputRouteIOxApicMask, gpioInputRouteIOxApicShift) != 0
+func (reg *Register) GetGPIOInputRouteIOxAPIC() uint8 {
+	return reg.getFieldVal(gpioInputRouteIOxApicMask, gpioInputRouteIOxApicShift)
 }
 
 // getGPIOInputRouteSCI - returns 1 if the pad can be routed to cause SCI when
 // configured in GPIO input mode.
-func (reg *Register) GetGPIOInputRouteSCI() bool {
-	return reg.getFieldVal(gpioInputRouteSCIMask, gpioInputRouteSCIShift) != 0
+func (reg *Register) GetGPIOInputRouteSCI() uint8 {
+	return reg.getFieldVal(gpioInputRouteSCIMask, gpioInputRouteSCIShift)
 }
 
 // getGPIOInputRouteSMI - returns 1 if the pad can be routed to cause SMI when
 // configured in GPIO input mode
-func (reg *Register) GetGPIOInputRouteSMI() bool {
-	return reg.getFieldVal(gpioInputRouteSMIMask, gpioInputRouteSMIShift) != 0
+func (reg *Register) GetGPIOInputRouteSMI() uint8 {
+	return reg.getFieldVal(gpioInputRouteSMIMask, gpioInputRouteSMIShift)
 }
 
 // getGPIOInputRouteNMI - returns 1 if the pad can be routed to cause NMI when
 // configured in GPIO input mode
-func (reg *Register) GetGPIOInputRouteNMI() bool {
-	return reg.getFieldVal(gpioInputRouteNMIMask, gpioInputRouteNMIShift) != 0
+func (reg *Register) GetGPIOInputRouteNMI() uint8 {
+	return reg.getFieldVal(gpioInputRouteNMIMask, gpioInputRouteNMIShift)
 }
 
 // getPadMode - reutrns pad mode or one of the native functions
