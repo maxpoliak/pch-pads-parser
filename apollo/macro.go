@@ -1,6 +1,7 @@
 package apollo
 
 import "fmt"
+import "strconv"
 
 // Local packages
 import "../common"
@@ -14,6 +15,18 @@ const (
 	PAD_CFG_DW0 = common.PAD_CFG_DW0
 	PAD_CFG_DW1 = common.PAD_CFG_DW1
 	MAX_DW_NUM  = common.MAX_DW_NUM
+)
+
+const (
+	PULL_NONE    = 0x0  // 0 000: none
+	PULL_DN_5K   = 0x2  // 0 010: 5k wpd (Only available on SMBus GPIOs)
+	PULL_DN_20K  = 0x4  // 0 100: 20k wpd
+	// PULL_NONE = 0x8  // 1 000: none
+	PULL_UP_1K   = 0x9  // 1 001: 1k wpu (Only available on I2C GPIOs)
+	PULL_UP_2K   = 0xb  // 1 011: 2k wpu (Only available on I2C GPIOs)
+	PULL_UP_20K  = 0xc  // 1 100: 20k wpu
+	PULL_UP_667  = 0xd  // 1 101: 1k & 2k wpu (Only available on I2C GPIOs)
+	PULL_NATIVE  = 0xf  // 1 111: (optional) Native controller selected by Pad Mode
 )
 
 type PlatformSpecific struct {}
@@ -39,23 +52,21 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 func (PlatformSpecific) Pull(macro *common.Macro) {
 	dw1 := macro.Register(PAD_CFG_DW1)
 	var pull = map[uint8]string{
-		0x0: "NONE",
-		0x2: "DN_5K",
-		0x4: "DN_20K",
-		0x9: "UP_1K",
-		0xa: "UP_5K",
-		0xb: "UP_2K",
-		0xc: "UP_20K",
-		0xd: "UP_667",
-		0xf: "NATIVE",
+		PULL_NONE:   "NONE",
+		PULL_DN_5K:  "DN_5K",
+		PULL_DN_20K: "DN_20K",
+		PULL_UP_1K:  "UP_1K",
+		PULL_UP_2K:  "UP_2K",
+		PULL_UP_20K: "UP_20K",
+		PULL_UP_667: "UP_667",
+		PULL_NATIVE: "NATIVE",
+
 	}
-	str, valid := pull[dw1.GetTermination()]
+	terminationFieldValue := dw1.GetTermination()
+	str, valid := pull[terminationFieldValue]
 	if !valid {
-		str = "INVALID"
-		fmt.Println("Error",
-			macro.PadIdGet(),
-			" invalid TERM value = ",
-			int(dw1.GetTermination()))
+		str = strconv.Itoa(int(terminationFieldValue))
+		fmt.Println("Error", macro.PadIdGet(), " invalid TERM value = ", str)
 	}
 	macro.Separator().Add(str)
 }
