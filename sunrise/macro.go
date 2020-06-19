@@ -179,15 +179,18 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 		}
 	}
 
-	if len(ids) == 0 {
+	if argc := len(ids); argc == 0 {
 		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
 		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own().Add("),")
-	} else if len(ids) == 2 {
+	} else if argc == 2 {
 		// PAD_CFG_GPI_DUAL_ROUTE(pad, pull, rst, trig, inv, route1, route2)
 		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig()
 		macro.Add(", " + ids[0] + ", " + ids[1] + "),")
+	} else {
+		// Clear the control mask so that the check fails and "Advanced" macro is
+		// generated
+		macro.Register(PAD_CFG_DW0).ClearCntrMask()
 	}
-	return
 }
 
 // Adds PAD_CFG_GPO macro with arguments
