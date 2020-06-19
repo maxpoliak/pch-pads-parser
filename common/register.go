@@ -106,6 +106,11 @@ func (reg *Register) getFieldVal(mask uint32, shift uint8) uint8 {
 	return uint8((reg.value & mask) >> shift)
 }
 
+// ClearCntrMask - clear control mask
+func (reg *Register) ClearCntrMask() {
+	reg.mask = 0;
+}
+
 // Fix Pad Reset Config field in mask for DW0 register
 // Returns *Register
 func (reg *Register) MaskResetFix() *Register {
