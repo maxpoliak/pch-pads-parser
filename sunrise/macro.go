@@ -254,45 +254,6 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 	macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
 }
 
-// Generates "Advanced" macro if the standard ones can't define the values from
-// the DW0/1 register
-func (PlatformSpecific) AdvancedMacroGenerate(macro *common.Macro) {
-	dw0 := macro.Register(PAD_CFG_DW0)
-	macro.Set("_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn().
-		Add(") | PAD_RESET(").Rstsrc().Add(") |\n\t\t")
-
-	var str string
-	var argument = true
-
-	switch {
-	case dw0.GetGPIOInputRouteIOxAPIC() != 0:
-		str = "IOAPIC"
-	case dw0.GetGPIOInputRouteSCI() != 0:
-		str = "SCI"
-	case dw0.GetGPIOInputRouteNMI() != 0:
-		str = "SMI"
-	case dw0.GetGPIOInputRouteSMI() != 0:
-		str = "NMI"
-	default:
-		argument = false
-	}
-
-	if argument {
-		macro.Add("PAD_IRQ_CFG(").Add(str).Trig().Invert().Add(")")
-	} else {
-		macro.Add("PAD_CFG0_TRIG_").Trig().Add(" | PAD_CFG0_RX_POL_").Invert()
-	}
-
-	macro.Add(" |\n\t\t").Add("PAD_BUF(").Bufdis().Add(")")
-	if macro.Register(PAD_CFG_DW0).GetGPIOTXState() != 0 {
-		macro.Add(" | 1")
-	}
-	macro.Add(",\n\t\tPAD_CFG_OWN_GPIO(").Own().Add(") | ").Add("PAD_PULL(").Pull().Add(")),")
-
-	fmt.Printf("\nNo configuration for pad: %s\n", macro.PadIdGet())
-	fmt.Printf("Use %s\n", macro.Get())
-}
-
 // GenMacro - generate pad macro
 // dw0 : DW0 config register value
 // dw1 : DW1 config register value
