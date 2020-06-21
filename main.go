@@ -14,7 +14,6 @@ import "./config"
 func generateOutputFile(parser *parser.ParserData) (err error) {
 
 	config.OutputGenFile.WriteString(`/* SPDX-License-Identifier: GPL-2.0-only */
-/* This file is part of the coreboot project. */
 
 #ifndef CFG_GPIO_H
 #define CFG_GPIO_H
