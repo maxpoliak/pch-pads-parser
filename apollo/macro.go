@@ -71,66 +71,114 @@ func (PlatformSpecific) Pull(macro *common.Macro) {
 	macro.Separator().Add(str)
 }
 
-// Adds PAD_CFG_GPI macro with arguments
-func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
-	dw0 :=  macro.Register(PAD_CFG_DW0)
-	dw1 :=  macro.Register(PAD_CFG_DW1)
-	isEdge := dw0.GetRXLevelEdgeConfiguration()
-	macro.Add("_GPI")
-	switch {
-	case dw0.GetGPIOInputRouteNMI() != 0:
-		// e.g. PAD_CFG_GPI_NMI(GPIO_24, UP_20K, DEEP, LEVEL, INVERT),
-		macro.Add("_NMI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
-
-	case dw0.GetGPIOInputRouteIOxAPIC() != 0:
-		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
-		macro.Add("_APIC")
-		if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
-			// e.g. H1_PCH_INT_ODL
-			// PAD_CFG_GPI_APIC_IOS(GPIO_63, NONE, DEEP, LEVEL, INVERT, TxDRxE, DISPUPD),
-			macro.Add("_IOS")
-			macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
-		} else {
-			if dw0.GetRXLevelConfiguration() != 0 {
-				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
-				macro.Add("_INVERT")
-			}
-			// PAD_CFG_GPI_APIC(GPP_C5, DN_20K, DEEP),
-			macro.Add("(").Id().Pull().Rstsrc()
+// Generate macro to cause peripheral IRQ when configured in GPIO input mode
+func ioApicRoute(macro *common.Macro) bool {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	dw1 := macro.Register(PAD_CFG_DW1)
+	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
+		return false
+	}
+	// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
+	macro.Add("_APIC")
+	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
+		// e.g. H1_PCH_INT_ODL
+		// PAD_CFG_GPI_APIC_IOS(GPIO_63, NONE, DEEP, LEVEL, INVERT, TxDRxE, DISPUPD),
+		macro.Add("_IOS")
+		macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
+	} else {
+		if dw0.GetRXLevelConfiguration() != 0 {
+			// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
+			macro.Add("_INVERT")
 		}
-
-	case dw0.GetGPIOInputRouteSCI() != 0:
-		if dw0.GetIOStandbyState() != 0 || dw0.GetIOStandbyTermination() != 0 {
-			// PAD_CFG_GPI_SCI_IOS(GPIO_141, NONE, DEEP, EDGE_SINGLE, INVERT, IGNORE, DISPUPD),
-			macro.Add("_SCI_IOS")
-			macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
-		} else if (isEdge & 0x1) != 0 {
-			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
-			macro.Add("_ACPI_SCI").Add("(").Id().Pull().Rstsrc().Invert()
-		} else {
-			// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
-			macro.Add("_SCI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
-		}
-
-	case dw0.GetGPIOInputRouteSMI() != 0:
-		if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
-			// PAD_CFG_GPI_SMI_IOS(GPIO_41, UP_20K, DEEP, EDGE_SINGLE, NONE, IGNORE, SAME),
-			macro.Add("_SMI_IOS")
-			macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
-		} else if (isEdge & 0x1) != 0 {
-			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
-			macro.Add("_ACPI_SMI").Add("(").Id().Pull().Rstsrc().Invert()
-		} else {
-			// e.g. PAD_CFG_GPI_SMI(GPP_E3, NONE, PLTRST, EDGE_SINGLE, NONE),
-			macro.Add("_SMI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
-		}
-
-	default:
-		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
-		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own()
+		// PAD_CFG_GPI_APIC(GPP_C5, DN_20K, DEEP),
+		macro.Add("(").Id().Pull().Rstsrc()
 	}
 	macro.Add("),")
+	return true
 }
+
+// Generate macro to cause NMI when configured in GPIO input mode
+func nmiRoute(macro *common.Macro) bool {
+	if macro.Register(PAD_CFG_DW0).GetGPIOInputRouteNMI() == 0 {
+		return false
+	}
+	// e.g. PAD_CFG_GPI_NMI(GPIO_24, UP_20K, DEEP, LEVEL, INVERT),
+	macro.Add("_NMI").Add("(").Id().Pull().Rstsrc().Trig().Invert().Add("),")
+	return true
+}
+
+// Generate macro to cause SCI when configured in GPIO input mode
+func sciRoute(macro *common.Macro) bool {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	if dw0.GetGPIOInputRouteSCI() == 0 {
+		return false
+	}
+	if dw0.GetIOStandbyState() != 0 || dw0.GetIOStandbyTermination() != 0 {
+		// PAD_CFG_GPI_SCI_IOS(GPIO_141, NONE, DEEP, EDGE_SINGLE, INVERT, IGNORE, DISPUPD),
+		macro.Add("_SCI_IOS")
+		macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
+	} else if dw0.GetRXLevelEdgeConfiguration() & 0x1 != 0 {
+		// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
+		macro.Add("_ACPI_SCI").Add("(").Id().Pull().Rstsrc().Invert()
+	} else {
+		// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
+		macro.Add("_SCI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
+	}
+	macro.Add("),")
+	return true
+}
+
+// Generate macro to cause SMI when configured in GPIO input mode
+func smiRoute(macro *common.Macro) bool {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	dw1 := macro.Register(PAD_CFG_DW1)
+	if dw0.GetGPIOInputRouteSMI() == 0 {
+		return false
+	}
+	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
+		// PAD_CFG_GPI_SMI_IOS(GPIO_41, UP_20K, DEEP, EDGE_SINGLE, NONE, IGNORE, SAME),
+		macro.Add("_SMI_IOS")
+		macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
+	} else if dw0.GetRXLevelEdgeConfiguration() & 0x1 != 0 {
+		// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
+		macro.Add("_ACPI_SMI").Add("(").Id().Pull().Rstsrc().Invert()
+	} else {
+		// e.g. PAD_CFG_GPI_SMI(GPP_E3, NONE, PLTRST, EDGE_SINGLE, NONE),
+		macro.Add("_SMI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
+	}
+	macro.Add("),")
+	return true
+}
+
+// Generate macro for GPI port
+func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
+	var ids []string
+	macro.Add("_GPI")
+	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
+		"IOAPIC": ioApicRoute,
+		"SCI":    sciRoute,
+		"SMI":    smiRoute,
+		"NMI":    nmiRoute,
+	} {
+		if isRoute(macro) {
+			ids = append(ids, routeid)
+		}
+	}
+
+	if argc := len(ids); argc == 0 {
+		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
+		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own().Add("),")
+	} else if argc == 2 {
+		// PAD_CFG_GPI_DUAL_ROUTE(pad, pull, rst, trig, inv, route1, route2)
+		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig()
+		macro.Add(", " + ids[0] + ", " + ids[1] + "),")
+	} else {
+		// Clear the control mask so that the check fails and "Advanced" macro is
+		// generated
+		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+	}
+}
+
 
 // Adds PAD_CFG_GPO macro with arguments
 func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
