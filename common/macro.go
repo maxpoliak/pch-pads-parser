@@ -309,6 +309,22 @@ func (macro *Macro) Advanced() {
 	macro.Add("),")
 }
 
+// Generate macro for bi-directional GPIO port
+func (macro *Macro) Bidirection() {
+	dw1 := macro.Register(PAD_CFG_DW1)
+	ios := dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0
+	macro.Add("_GPIO_BIDIRECT")
+	if ios {
+		macro.Add("_IOS")
+	}
+	// PAD_CFG_GPIO_BIDIRECT(pad, val, pull, rst, trig, own)
+	macro.Add("(").Id().Val().Pull().Rstsrc().Trig()
+	if ios {
+		// PAD_CFG_GPIO_BIDIRECT_IOS(pad, val, pull, rst, trig, iosstate, iosterm, own)
+		macro.IOSstate().IOTerm()
+	}
+	macro.Own().Add("),")
+}
 
 const (
 	rxDisable uint8 = 0x2
@@ -334,10 +350,7 @@ func (macro *Macro) Generate() string {
 			return macro.Get()
 
 		default:
-			// In case the rule isn't found, a common macro is used
-			// to create the pad configuration
-			macro.Advanced()
-			return macro.Get()
+			macro.Bidirection()
 		}
 	} else {
 		macro.Platform.NativeFunctionMacroAdd(macro)
