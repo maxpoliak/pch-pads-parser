@@ -47,6 +47,10 @@ func main() {
 		false,
 		"generate macros with raw values of registers DW0, DW1")
 
+	advFlag := flag.Bool("adv",
+		false,
+		"generate advanced macros only")
+
 	template := flag.Int("t", 0, "template type number\n"+
 		"\t0 - inteltool.log (default)\n"+
 		"\t1 - gpio.h\n"+
@@ -60,6 +64,7 @@ func main() {
 	flag.Parse()
 
 	config.RawFormatFlagSet(*rawFlag)
+	config.AdvancedFormatFlagSet(*advFlag)
 
 	if valid := config.PlatformSet(*platform); valid != 0 {
 		fmt.Printf("Error: invalid platform!\n")

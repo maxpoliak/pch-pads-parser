@@ -48,3 +48,11 @@ func RawFormatFlagSet(flag bool) {
 func IsRawFormatUsed() bool {
 	return useRawFormat
 }
+
+var useAdvancedFormat bool = false
+func AdvancedFormatFlagSet(flag bool) {
+	useAdvancedFormat = flag
+}
+func IsAdvancedFormatUsed() bool {
+	return useAdvancedFormat
+}

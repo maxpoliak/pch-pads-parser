@@ -53,6 +53,12 @@ platform type is set using the -p option (Sunrise by default):
 ./pch-pads-parser -p apl -file path/to/inteltool.log
 ```
 
+Use the -adv option to only generate extended macros:
+
+```bash
+./pch-pads-parser -adv -p apl -file ../apollo-inteltool.log
+```
+
 ### Supports Chipsets
 
   Sunrise PCH, Lewisburg PCH, Apollo Lake SoC

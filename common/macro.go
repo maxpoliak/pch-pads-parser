@@ -1,6 +1,7 @@
 package common
 
 import "strconv"
+import "../config"
 
 const (
 	PAD_OWN_ACPI   = 0
@@ -347,13 +348,19 @@ func (macro *Macro) Generate() string {
 
 		case rxDisable | txDisable:
 			macro.Platform.NoConnMacroAdd(macro) // NC
-			return macro.Get()
+			if !config.IsAdvancedFormatUsed() {
+				return macro.Get()
+			}
 
 		default:
 			macro.Bidirection()
 		}
 	} else {
 		macro.Platform.NativeFunctionMacroAdd(macro)
+	}
+	if config.IsAdvancedFormatUsed() {
+		// Clear control mask to generate advanced macro only
+		macro.Register(PAD_CFG_DW0).ClearCntrMask()
 	}
 	check(macro)
 	return macro.Get()
