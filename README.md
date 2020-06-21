@@ -5,7 +5,7 @@ A small utility for converting a pad configuration from the inteltool
 dump to the PAD_CFG macro for [coreboot] project.
 
 ```bash
-(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.1
+(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.2
 (shell)$ go build
 (shell)$ ./pch-pads-parser -file /path/to/inteltool.log
 ```
