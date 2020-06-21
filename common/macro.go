@@ -36,7 +36,6 @@ type PlatformSpecific interface {
 	GpoMacroAdd(macro *Macro)
 	NativeFunctionMacroAdd(macro *Macro)
 	NoConnMacroAdd(macro *Macro)
-	AdvancedMacroGenerate(macro *Macro)
 }
 
 // Macro - contains macro information and methods
