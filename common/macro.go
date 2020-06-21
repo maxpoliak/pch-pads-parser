@@ -1,8 +1,6 @@
 package common
 
-import (
-	"strconv"
-)
+import "strconv"
 
 const (
 	PAD_OWN_ACPI   = 0
@@ -23,7 +21,14 @@ const (
 	StandbyIgnore = 0xf
 )
 
-// Platform - platform-specific interface
+const (
+	IOSTERM_SAME	= 0x0
+	IOSTERM_DISPUPD	= 0x1
+	IOSTERM_ENPD	= 0x2
+	IOSTERM_ENPU    = 0x3
+)
+
+// PlatformSpecific - platform-specific interface
 type PlatformSpecific interface {
 	Rstsrc(macro *Macro)
 	Pull(macro *Macro)
@@ -128,7 +133,7 @@ func (macro *Macro) Val() *Macro {
 // Adds Pad GPO value to macro string as a new argument
 // return: Macro
 func (macro *Macro) Trig() *Macro {
-	var dw0 = macro.Register(PAD_CFG_DW0)
+	dw0 := macro.Register(PAD_CFG_DW0)
 	var trig = map[uint8]string{
 		0x0: "LEVEL",
 		0x1: "EDGE_SINGLE",
@@ -142,7 +147,7 @@ func (macro *Macro) Trig() *Macro {
 // return: Macro
 func (macro *Macro) Invert() *Macro {
 	macro.Separator()
-	if macro.Register(PAD_CFG_DW0).GetRXLevelConfiguration() {
+	if macro.Register(PAD_CFG_DW0).GetRXLevelConfiguration() !=0 {
 		return macro.Add("INVERT")
 	}
 	return macro.Add("NONE")
@@ -211,10 +216,10 @@ func (macro *Macro) IOSstate() *Macro {
 // return: macro
 func (macro *Macro) IOTerm() *Macro {
 	var ioTermMacro = map[uint8]string{
-		0x0: "SAME",
-		0x1: "DISPUPD",
-		0x2: "ENPD",
-		0x3: "ENPU",
+		IOSTERM_SAME:    "SAME",
+		IOSTERM_DISPUPD: "DISPUPD",
+		IOSTERM_ENPD:    "ENPD",
+		IOSTERM_ENPU:    "ENPU",
 	}
 	dw1 := macro.Register(PAD_CFG_DW1)
 	return macro.Separator().Add(ioTermMacro[dw1.GetIOStandbyTermination()])
@@ -226,6 +231,85 @@ func check(macro *Macro) {
 		macro.Platform.AdvancedMacroGenerate(macro)
 	}
 }
+
+// Add Input Route
+func (macro *Macro) irqInputRoute() *Macro {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	var options []string
+
+	for key, isRoute := range map[string]func()uint8{
+		"IOAPIC": dw0.GetGPIOInputRouteIOxAPIC,
+		"SCI":    dw0.GetGPIOInputRouteSCI,
+		"SMI":    dw0.GetGPIOInputRouteSMI,
+		"NMI":    dw0.GetGPIOInputRouteNMI,
+	} {
+		if isRoute() != 0 {
+			options = append(options, key)
+		}
+	}
+	switch len(options) {
+	case 0:
+		break
+	case 1:
+		// PAD_IRQ_CFG(route, trig, inv)
+		macro.Add("PAD_IRQ_CFG(" + options[0]).Trig().Invert()
+		return macro
+	case 2:
+		// PAD_IRQ_CFG_DUAL_ROUTE(route1, route2, trig, inv)
+		macro.Add("PAD_IRQ_CFG_DUAL_ROUTE(" + options[0]+ ", " + options[1])
+		macro.Trig().Invert()
+		return macro
+	default:
+		// PAD_IRQ_CFG(route1) | PAD_IRQ_CFG(route2) | PAD_IRQ_CFG(route3) ...
+		for _, option := range options {
+			macro.Add("PAD_IRQ_CFG(" + option)
+		}
+	}
+	// PAD_TRIG(trig) | PAD_RX_POL(inv) | ...
+	macro.Add("PAD_TRIG(").Trig()
+	if dw0.GetRXLevelConfiguration() != 0 {
+		macro.Add(") | PAD_RX_POL(").Invert()
+	}
+	return macro
+}
+
+// Generate Advanced Macro
+func (macro *Macro) Advanced() {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	dw1 := macro.Register(PAD_CFG_DW1)
+	// Add macro to PAG_CFG
+	macro.Set("_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn()
+	macro.Add(") | PAD_RESET(").Rstsrc().Add(") | ").irqInputRoute().Add(")")
+	if dw0.GetGPIORxTxDisableStatus() != 0 {
+		macro.Add(" | PAD_BUF(").Bufdis().Add(")")
+	}
+	if dw0.GetRXPadStateSelect() != 0 {
+		macro.Add(" | (1 << 29)")
+	}
+	if dw0.GetRXRawOverrideStatus() != 0 {
+		macro.Add(" | (1 << 28)")
+	}
+
+	if dw0.GetGPIOTXState() != 0 {
+		macro.Add(" | 1")
+	}
+	if dw1.ValueGet() == 0 {
+		macro.Add(", 0")
+	} else {
+		macro.Add(",\n\t\t").Add("PAD_PULL(").Pull().Add(")")
+		if dw1.GetIOStandbyState() != 0 {
+			macro.Add(" | PAD_IOSSTATE(").IOSstate().Add(")")
+		}
+		if dw1.GetIOStandbyTermination() != 0 {
+			macro.Add(" | PAD_IOSTERM(").IOTerm().Add(")")
+		}
+		if macro.IsOwnershipDriver() {
+			macro.Add(" | PAD_CFG_OWN_GPIO(").Own().Add(")")
+		}
+	}
+	macro.Add("),")
+}
+
 
 const (
 	rxDisable uint8 = 0x2
