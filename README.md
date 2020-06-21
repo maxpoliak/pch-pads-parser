@@ -59,6 +59,21 @@ Use the -adv option to only generate extended macros:
 ./pch-pads-parser -adv -p apl -file ../apollo-inteltool.log
 ```
 
+### Macro Check
+
+After generating the macro, the utility checks all used
+fields of the configuration registers. If some field has been
+ignored, the utility generates extended macros. To not check
+macros, use the -n option:
+
+```bash
+./pch-pads-parser -n -p apl -file ../apollo-inteltool.log
+```
+
+In this case, some fields of the configuration registers
+DW0 will be ignored.
+
+
 ### Supports Chipsets
 
   Sunrise PCH, Lewisburg PCH, Apollo Lake SoC

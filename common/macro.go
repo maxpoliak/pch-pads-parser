@@ -355,10 +355,17 @@ func (macro *Macro) Generate() string {
 	} else {
 		macro.Platform.NativeFunctionMacroAdd(macro)
 	}
+
 	if config.IsAdvancedFormatUsed() {
 		// Clear control mask to generate advanced macro only
 		macro.Register(PAD_CFG_DW0).ClearCntrMask()
 	}
+
+	if config.IsNonCheckingFlagUsed() {
+		// Generate macros without checking
+		return macro.Get()
+	}
+
 	check(macro)
 	return macro.Get()
 }

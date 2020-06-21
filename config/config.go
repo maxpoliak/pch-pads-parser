@@ -56,3 +56,11 @@ func AdvancedFormatFlagSet(flag bool) {
 func IsAdvancedFormatUsed() bool {
 	return useAdvancedFormat
 }
+
+var nonCheckingFlag bool = false
+func NonCheckingFlagSet(flag bool) {
+	nonCheckingFlag = flag
+}
+func IsNonCheckingFlagUsed() bool {
+	return nonCheckingFlag
+}

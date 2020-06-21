@@ -51,6 +51,12 @@ func main() {
 		false,
 		"generate advanced macros only")
 
+	nonCheckFlag := flag.Bool("n",
+		false,
+		"generate macros without checking.\n" +
+		"In this case, some fields of the configuration registers\n" +
+		"DW0 will be ignored.")
+
 	template := flag.Int("t", 0, "template type number\n"+
 		"\t0 - inteltool.log (default)\n"+
 		"\t1 - gpio.h\n"+
@@ -65,6 +71,7 @@ func main() {
 
 	config.RawFormatFlagSet(*rawFlag)
 	config.AdvancedFormatFlagSet(*advFlag)
+	config.NonCheckingFlagSet(*nonCheckFlag)
 
 	if valid := config.PlatformSet(*platform); valid != 0 {
 		fmt.Printf("Error: invalid platform!\n")
