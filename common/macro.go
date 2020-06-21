@@ -342,7 +342,6 @@ func (macro *Macro) Generate() string {
 		}
 	} else {
 		macro.Platform.NativeFunctionMacroAdd(macro)
-		return macro.Get()
 	}
 	check(macro)
 	return macro.Get()
