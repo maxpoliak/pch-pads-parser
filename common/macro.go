@@ -348,9 +348,6 @@ func (macro *Macro) Generate() string {
 
 		case rxDisable | txDisable:
 			macro.Platform.NoConnMacroAdd(macro) // NC
-			if !config.IsAdvancedFormatUsed() {
-				return macro.Get()
-			}
 
 		default:
 			macro.Bidirection()
