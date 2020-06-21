@@ -65,8 +65,13 @@ func (info *padInfo) padInfoRawFprint() {
 // gpio  : gpio.c file descriptor
 // macro : string of the generated macro
 func (info *padInfo) padInfoMacroFprint(macro string) {
+	info.dw1 &= 0xffffff00
 	if len(info.function) > 0 {
-		fmt.Fprintf(config.OutputGenFile, "\t/* %s - %s */\n", info.id, info.function)
+		fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s (DW0: 0x%0.8x, DW1: 0x%0.8x) */\n",
+				info.id,
+				info.function,
+				info.dw0,
+				info.dw1)
 	}
 	fmt.Fprintf(config.OutputGenFile, "\t%s\n", macro)
 }
