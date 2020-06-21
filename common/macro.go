@@ -228,7 +228,7 @@ func (macro *Macro) IOTerm() *Macro {
 // Check created macro
 func check(macro *Macro) {
 	if !macro.Register(PAD_CFG_DW0).MaskCheck() {
-		macro.Platform.AdvancedMacroGenerate(macro)
+		macro.Advanced()
 	}
 }
 
@@ -337,7 +337,7 @@ func (macro *Macro) Generate() string {
 		default:
 			// In case the rule isn't found, a common macro is used
 			// to create the pad configuration
-			macro.Platform.AdvancedMacroGenerate(macro)
+			macro.Advanced()
 			return macro.Get()
 		}
 	} else {
