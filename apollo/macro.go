@@ -110,10 +110,11 @@ func nmiRoute(macro *common.Macro) bool {
 // Generate macro to cause SCI when configured in GPIO input mode
 func sciRoute(macro *common.Macro) bool {
 	dw0 := macro.Register(PAD_CFG_DW0)
+	dw1 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteSCI() == 0 {
 		return false
 	}
-	if dw0.GetIOStandbyState() != 0 || dw0.GetIOStandbyTermination() != 0 {
+	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
 		// PAD_CFG_GPI_SCI_IOS(GPIO_141, NONE, DEEP, EDGE_SINGLE, INVERT, IGNORE, DISPUPD),
 		macro.Add("_SCI_IOS")
 		macro.Add("(").Id().Pull().Rstsrc().Trig().Invert().IOSstate().IOTerm()
