@@ -277,8 +277,12 @@ func (macro *Macro) irqInputRoute() *Macro {
 func (macro *Macro) Advanced() {
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
-	// Add macro to PAG_CFG
-	macro.Set("_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn()
+
+	// Add string of a reference macro as a comment
+	reference := macro.Get()
+	macro.Set("/* ").Add(reference).Add(" */")
+
+	macro.Add("\n\t_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn()
 	macro.Add(") | PAD_RESET(").Rstsrc().Add(") | ").irqInputRoute().Add(")")
 	if dw0.GetGPIORxTxDisableStatus() != 0 {
 		macro.Add(" | PAD_BUF(").Bufdis().Add(")")
