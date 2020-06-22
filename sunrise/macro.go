@@ -217,25 +217,8 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
 	isEdge := dw0.GetRXLevelEdgeConfiguration() != 0
 	isTxRxBufDis := dw0.GetGPIORxTxDisableStatus() != 0
-
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 	macro.Add("_NF")
-
-	// Add to the macro name all the other parameters that affect the pad in
-	// native function mode. The user should decide whether to use them or not.
-	if dw0.GetRXLevelConfiguration() != 0 {
-		// RX Invert state (RXINV)
-		macro.Add("_INVERT")
-	}
-	if dw0.GetRXRawOverrideStatus() != 0 {
-		// check RXRAW1 field
-		macro.Add("_RXRAW")
-	}
-	if dw0.GetRXPadStateSelect() != 0 {
-		// check RX Pad State (RXINV)
-		macro.Add("_RXPADSTSEL")
-	}
-
 	if isEdge || isTxRxBufDis {
 		// e.g. PCHHOT#
 		// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
