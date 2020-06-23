@@ -172,7 +172,7 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 	} else if argc > 2 {
 		// Clear the control mask so that the check fails and "Advanced" macro is
 		// generated
-		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+		macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(common.AllFields)
 	}
 }
 
@@ -227,10 +227,10 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 	// Some fields of the configuration registers are hidden inside the macros,
 	// we should check them to update the corresponding bits in the control mask.
 	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
-		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+		dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
 	}
 	if dw0.GetResetConfig() != common.RST_DEEP {
-		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
 	}
 
 	macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")

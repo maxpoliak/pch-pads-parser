@@ -376,7 +376,7 @@ func (macro *Macro) Generate() string {
 
 	if config.IsAdvancedFormatUsed() {
 		// Clear control mask to generate advanced macro only
-		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+		macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(AllFields)
 	}
 
 	if config.IsNonCheckingFlagUsed() {
