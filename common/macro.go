@@ -1,6 +1,8 @@
 package common
 
 import "strconv"
+import "fmt"
+
 import "../config"
 
 const (
@@ -292,10 +294,19 @@ func (macro *Macro) Advanced() {
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 
+	// Get mask of ignored bit fields.
+	ignored := dw0.IgnoredFieldsGet()
+
 	// Add string of a reference macro as a comment
 	reference := macro.Get()
-	macro.Set("/* ").Add(reference).Add(" */")
 
+	macro.Set("/* ").Add(reference).Add(" */")
+	if ignored != 0 {
+		// If some fields were ignored when the macro was generated, then we will
+		// show them in the comment
+		info := fmt.Sprintf("\n\t/* (!) NEED TO IGNORE THESE FIELDS: 0x%0.8x */", ignored)
+		macro.Add(info)
+	}
 	macro.Add("\n\t_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn()
 	macro.Add(") | PAD_RESET(").Rstsrc().Add(") | ").irqInputRoute().Add(")")
 	if dw0.GetGPIORxTxDisableStatus() != 0 {
@@ -376,11 +387,20 @@ func (macro *Macro) Generate() string {
 
 	if config.IsAdvancedFormatUsed() {
 		// Clear control mask to generate advanced macro only
-		macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(AllFields)
+		macro.Advanced()
 	}
 
 	if config.IsNonCheckingFlagUsed() {
 		// Generate macros without checking
+		ignored := dw0.IgnoredFieldsGet()
+		if ignored != 0 {
+			// If some fields were ignored when the macro was generated, then we will
+			// show them in the comment
+			info := fmt.Sprintf(
+					"/* (!) THESE FIELDS WERE IGNORED : 0x%0.8x */\n\t",
+					ignored)
+			return info + macro.Get()
+		}
 		return macro.Get()
 	}
 

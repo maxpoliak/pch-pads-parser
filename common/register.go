@@ -109,9 +109,18 @@ func (reg *Register) getFieldVal(mask uint32, shift uint8) uint8 {
 }
 
 // CntrMaskFieldsClear - clear filed in control mask
-// fieldMask
+// fieldMask - mask of the field to be cleared
 func (reg *Register) CntrMaskFieldsClear(fieldMask uint32) {
 	reg.mask &= ^fieldMask;
+}
+
+// IgnoredFieldsGet - return mask of unchecked (ignored) fields.
+//                    These bit fields were not read when the macro was
+//                    generated.
+// return
+//   mask of ignored bit field
+func (reg *Register) IgnoredFieldsGet() uint32 {
+	return reg.value & ^reg.mask
 }
 
 // Fix Pad Reset Config field in mask for DW0 register
