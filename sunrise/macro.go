@@ -91,26 +91,8 @@ func ioApicRoute(macro *common.Macro) bool {
 	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
 		return false
 	}
-	// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
-	macro.Add("_APIC")
-	if dw0.GetRXLevelEdgeConfiguration() == 0 {
-		if dw0.GetRXLevelConfiguration() != 0 {
-			// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
-			macro.Add("_INVERT")
-		}
-		macro.Add("(").Id().Pull().Rstsrc()
-	} else {
-		// PAD_CFG_GPI_APIC_IOS(GPP_C20, NONE, DEEP, LEVEL, INVERT,
-		// TxLASTRxE, SAME) macro isn't used for this chipset. But, in
-		// the case when SOC_INTEL_COMMON_BLOCK_GPIO_LEGACY_MACROS is
-		// defined in the config, this macro allows you to set trig and
-		// invert parameters.
-		macro.Add("_IOS").Add("(").Id().Pull().Rstsrc().Trig().Invert()
-		// IOStandby Config will be ignored for the Sunrise PCH, so use
-		// any values
-		macro.Add(", TxLASTRxE, SAME")
-	}
-	macro.Add("),")
+	// e.g. PAD_CFG_GPI_APIC(pad, pull, rst, trig, inv)
+	macro.Add("_APIC").Add("(").Id().Pull().Rstsrc().Trig().Invert().Add("),")
 	return true
 }
 
