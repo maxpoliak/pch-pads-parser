@@ -318,7 +318,7 @@ func (macro *Macro) Advanced() {
 func (macro *Macro) Bidirection() {
 	dw1 := macro.Register(PAD_CFG_DW1)
 	ios := dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0
-	macro.Add("_GPIO_BIDIRECT")
+	macro.Set("PAD_CFG_GPIO_BIDIRECT")
 	if ios {
 		macro.Add("_IOS")
 	}

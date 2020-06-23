@@ -154,7 +154,7 @@ func smiRoute(macro *common.Macro) bool {
 // Generate macro for GPI port
 func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 	var ids []string
-	macro.Add("_GPI")
+	macro.Set("PAD_CFG_GPI")
 	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
 		"IOAPIC": ioApicRoute,
 		"SCI":    sciRoute,
@@ -186,6 +186,8 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 	dw0 :=  macro.Register(PAD_CFG_DW0)
 	dw1 :=  macro.Register(PAD_CFG_DW1)
 	term := dw1.GetTermination()
+
+	macro.Set("PAD_CFG")
 	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
 		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
 		macro.Add("_IOSSTATE_IOSTERM(").Id().Val().Pull().IOSstate().IOTerm()
@@ -210,7 +212,8 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 	dw1 := macro.Register(PAD_CFG_DW1)
 	isIOStandbyStateUsed := dw1.GetIOStandbyState() != 0
 	isIOStandbyTerminationUsed := dw1.GetIOStandbyTermination() != 0
-	macro.Add("_NF")
+
+	macro.Set("PAD_CFG_NF")
 	if !isIOStandbyTerminationUsed && isIOStandbyStateUsed {
 		if dw1.GetIOStandbyState() == common.StandbyIgnore {
 			// PAD_CFG_NF_IOSTANDBY_IGNORE(PMU_SLP_S0_B, NONE, DEEP, NF1),

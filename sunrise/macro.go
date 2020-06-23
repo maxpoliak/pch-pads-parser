@@ -167,7 +167,8 @@ func smiRoute(macro *common.Macro) bool {
 // Adds PAD_CFG_GPI macro with arguments
 func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 	var ids []string
-	macro.Add("_GPI")
+
+	macro.Set("PAD_CFG_GPI")
 	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
 		"IOAPIC": ioApicRoute,
 		"SCI":    sciRoute,
@@ -196,6 +197,8 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 // Adds PAD_CFG_GPO macro with arguments
 func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 	term := macro.Register(PAD_CFG_DW1).GetTermination()
+
+	macro.Set("PAD_CFG")
 	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
@@ -218,7 +221,7 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 	isEdge := dw0.GetRXLevelEdgeConfiguration() != 0
 	isTxRxBufDis := dw0.GetGPIORxTxDisableStatus() != 0
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
-	macro.Add("_NF")
+	macro.Set("PAD_CFG_NF")
 	if isEdge || isTxRxBufDis {
 		// e.g. PCHHOT#
 		// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
