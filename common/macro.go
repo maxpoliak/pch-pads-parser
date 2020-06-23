@@ -29,6 +29,20 @@ const (
 	IOSTERM_ENPU    = 0x3
 )
 
+const (
+	RST_PWROK  = 0
+	RST_DEEP   = 1
+	RST_PLTRST = 2
+	RST_RSMRST = 3
+)
+
+const (
+	TRIG_LEVEL       = 0
+	TRIG_EDGE_SINGLE = 1
+	TRIG_OFF         = 2
+	TRIG_EDGE_BOTH   = 3
+)
+
 // PlatformSpecific - platform-specific interface
 type PlatformSpecific interface {
 	Rstsrc(macro *Macro)

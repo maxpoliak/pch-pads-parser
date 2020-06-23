@@ -236,7 +236,21 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 
 // Adds PAD_NC macro
 func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
-	// PAD_NC(OSC_CLK_OUT_1, DN_20K)
+	// #define PAD_NC(pad, pull)
+	// _PAD_CFG_STRUCT(pad,
+	//     PAD_FUNC(GPIO) | PAD_RESET(DEEP) | PAD_TRIG(OFF) | PAD_BUF(TX_RX_DISABLE),
+	//     PAD_PULL(pull) | PAD_IOSSTATE(TxDRxE)),
+	dw0 := macro.Register(PAD_CFG_DW0)
+
+	// Some fields of the configuration registers are hidden inside the macros,
+	// we should check them to update the corresponding bits in the control mask.
+	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
+		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+	}
+	if dw0.GetResetConfig() != common.RST_DEEP {
+		macro.Register(PAD_CFG_DW0).ClearCntrMask()
+	}
+
 	macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
 }
 

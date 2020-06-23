@@ -234,8 +234,18 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 
 // Adds PAD_NC macro
 func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
-	iosstate := macro.Register(PAD_CFG_DW1).GetIOStandbyState()
-	if iosstate == common.TxDRxE {
+	dw1 := macro.Register(PAD_CFG_DW1)
+
+	if dw1.GetIOStandbyState() == common.TxDRxE {
+		dw0 := macro.Register(PAD_CFG_DW0)
+		if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
+			// See sunrise/macro.go : NoConnMacroAdd()
+			macro.Register(PAD_CFG_DW0).ClearCntrMask()
+		}
+		if dw0.GetResetConfig() != common.RST_DEEP {
+			// See sunrise/macro.go : NoConnMacroAdd()
+			macro.Register(PAD_CFG_DW0).ClearCntrMask()
+		}
 		// PAD_NC(OSC_CLK_OUT_1, DN_20K)
 		macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
 		return
