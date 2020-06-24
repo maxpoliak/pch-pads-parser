@@ -120,7 +120,8 @@ func (reg *Register) CntrMaskFieldsClear(fieldMask uint32) {
 // return
 //   mask of ignored bit field
 func (reg *Register) IgnoredFieldsGet() uint32 {
-	return reg.value & ^reg.mask
+	mask := reg.mask | reg.roFileds
+	return reg.value & ^mask
 }
 
 // Fix Pad Reset Config field in mask for DW0 register
