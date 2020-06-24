@@ -76,6 +76,11 @@ func main() {
 		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n" + 
 		"\t/* (!) NEED TO IGNORE THESE FIELDS: 0x04000000 */\n")
 
+	infoLevel4 := flag.Bool("iiii",
+		false,
+		"Info Level 4: show decoded DW0/DW1 register:\n" +
+		"\t/* DW0: PAD_TRIG(DEEP) | PAD_BUF(TX_RX_DISABLE) FIELD IS IGNORED */\n")
+
 	template := flag.Int("t", 0, "template type number\n"+
 		"\t0 - inteltool.log (default)\n"+
 		"\t1 - gpio.h\n"+
@@ -98,6 +103,8 @@ func main() {
 		config.InfoLevelSet(2)
 	} else if *infoLevel3 {
 		config.InfoLevelSet(3)
+	} else if *infoLevel4 {
+		config.InfoLevelSet(4)
 	}
 
 	if valid := config.PlatformSet(*platform); valid != 0 {
