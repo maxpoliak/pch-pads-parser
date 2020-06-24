@@ -428,9 +428,46 @@ func (macro *Macro) dw1Decode() *Macro {
 	return macro
 }
 
+// AddToMacroIgnoredMask - Print info about ignored field mask
+// title - warning message
+func (macro *Macro) AddToMacroIgnoredMask(title string) *Macro {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	dw1 := macro.Register(PAD_CFG_DW1)
+
+	// Get mask of ignored bit fields.
+	dw0Ignored := dw0.IgnoredFieldsGet()
+	dw1Ignored := dw1.IgnoredFieldsGet()
+	if (dw0Ignored != 0 || dw1Ignored != 0) && config.InfoLevelGet() >= 3 {
+		// If some fields were ignored when the macro was generated, then we will
+		// show them in the comment
+		dw0info := fmt.Sprintf("DW0(0x%0.8x) ", dw0Ignored)
+		macro.Add("\n\t/* ").Add(title).Add(dw0info)
+		if dw1Ignored != 0 {
+			dw1info := fmt.Sprintf("DW1(0x%0.8x) ", dw1Ignored)
+			macro.Add(dw1info)
+		}
+		macro.Add("*/")
+		// Decode ignored mask
+		if config.InfoLevelGet() >= 4 {
+			if dw0Ignored != 0 {
+				dw0temp := dw0.ValueGet()
+				dw0.ValueSet(dw0Ignored)
+				macro.Add("\n\t/* (!) DW0 : ").dw0Decode().Add(" - IGNORED */")
+				dw0.ValueSet(dw0temp)
+			}
+			if dw1Ignored != 0 {
+				dw1temp	:= dw1.ValueGet()
+				dw1.ValueSet(dw1Ignored)
+				macro.Add("\n\t/* (!) DW1 : ").dw1Decode().Add(" - IGNORED */")
+				dw1.ValueSet(dw1temp)
+			}
+		}
+	}
+	return macro
+}
+
 // Generate Advanced Macro
 func (macro *Macro) Advanced() *Macro {
-	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 
 	if config.InfoLevelGet() <= 1 {
@@ -439,22 +476,7 @@ func (macro *Macro) Advanced() *Macro {
 		// Add string of a reference macro as a comment
 		reference := macro.Get()
 		macro.Set("/* ").Add(reference).Add(" */")
-
-		// Get mask of ignored bit fields.
-		dw0Ignored := dw0.IgnoredFieldsGet()
-		dw1Ignored := dw1.IgnoredFieldsGet()
-		if (dw0Ignored != 0 || dw1Ignored != 0) && config.InfoLevelGet() >= 3 {
-			// If some fields were ignored when the macro was generated, then we will
-			// show them in the comment
-			dw0info := fmt.Sprintf("DW0(0x%0.8x) ", dw0Ignored)
-			macro.Add("\n\t/* (!) NEED TO IGNORE THESE FIELDS: ").Add(dw0info)
-			if dw1Ignored != 0 {
-				dw1info := fmt.Sprintf("DW1(0x%0.8x) ", dw1Ignored)
-				macro.Add(dw1info)
-			}
-			macro.Add("*/")
-		}
-		macro.Add("\n\t")
+		macro.AddToMacroIgnoredMask("(!) NEED TO IGNORE THESE FIELDS: ").Add("\n\t")
 	}
 
 	macro.Add("_PAD_CFG_STRUCT(").Id().Add(",")
@@ -519,20 +541,7 @@ func (macro *Macro) Generate() string {
 	}
 
 	if config.IsNonCheckingFlagUsed() {
-		dw1 := macro.Register(PAD_CFG_DW1)
-
-		// Generate macros without checking
-		dw0Ignored := dw0.IgnoredFieldsGet()
-		dw1Ignored := dw1.IgnoredFieldsGet()
-		if (dw0Ignored != 0 || dw1Ignored != 0) && config.InfoLevelGet() >= 3 {
-			// If some fields were ignored when the macro was generated, then we will
-			// show them in the comment
-			reference := macro.Get()
-			info := fmt.Sprintf(
-					"/* (!) THESE FIELDS WERE IGNORED : DW0(0x%0.8x), DW1(0x%0.8x) */\n\t",
-					dw0Ignored, dw1Ignored)
-			return info + reference
-		}
+		macro.AddToMacroIgnoredMask("(!) THESE FIELDS WERE IGNORED: ").Add("\n\t")
 		return macro.Get()
 	}
 
