@@ -224,8 +224,8 @@ func (reg *Register) GetGPIORXState() uint8 {
 }
 
 // getGPIOTXState - returns GPIO TX State (GPIOTXSTATE)
-func (reg *Register) GetGPIOTXState() int {
-	return int(reg.getFieldVal(TxStateMask, 0))
+func (reg *Register) GetGPIOTXState() uint8 {
+	return reg.getFieldVal(TxStateMask, 0)
 }
 
 // getIOStandbyState - return IO Standby State (IOSSTATE)
