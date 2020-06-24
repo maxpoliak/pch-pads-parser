@@ -161,8 +161,21 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 	}
 
 	if argc := len(ids); argc == 0 {
-		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
-		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own().Add("),")
+		dw1 := macro.Register(PAD_CFG_DW1)
+		isIOStandbyStateUsed := dw1.GetIOStandbyState() != 0
+		isIOStandbyTerminationUsed := dw1.GetIOStandbyTermination() != 0
+		if isIOStandbyStateUsed && !isIOStandbyTerminationUsed {
+			macro.Add("_TRIG_IOSSTATE_OWN(")
+			// PAD_CFG_GPI_TRIG_IOSSTATE_OWN(pad, pull, rst, trig, iosstate, own)
+			macro.Id().Pull().Rstsrc().Trig().IOSstate().Own().Add("),")
+		} else if isIOStandbyTerminationUsed {
+			macro.Add("_TRIG_IOS_OWN(")
+			// PAD_CFG_GPI_TRIG_IOS_OWN(pad, pull, rst, trig, iosstate, iosterm, own)
+			macro.Id().Pull().Rstsrc().Trig().IOSstate().IOTerm().Own().Add("),")
+		} else {
+			// PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
+			macro.Add("_TRIG_OWN(").Id().Pull().Rstsrc().Trig().Own().Add("),")
+		}
 	} else if argc == 2 {
 		// PAD_CFG_GPI_DUAL_ROUTE(pad, pull, rst, trig, inv, route1, route2)
 		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig()
