@@ -294,21 +294,26 @@ func (macro *Macro) Advanced() {
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 
+	if config.InfoLevelGet() >= 2 {
+		// Add string of a reference macro as a comment
+		reference := macro.Get()
+		macro.Set("/* ").Add(reference).Add(" */")
+	}
+
 	// Get mask of ignored bit fields.
-	ignored := dw0.IgnoredFieldsGet()
-
-	// Add string of a reference macro as a comment
-	reference := macro.Get()
-
-	macro.Set("/* ").Add(reference).Add(" */")
-	if ignored != 0 {
+	if ignored := dw0.IgnoredFieldsGet(); ignored != 0 && config.InfoLevelGet() >= 3 {
 		// If some fields were ignored when the macro was generated, then we will
 		// show them in the comment
-		info := fmt.Sprintf("\n\t/* (!) NEED TO IGNORE THESE FIELDS: 0x%0.8x */", ignored)
-		macro.Add(info)
+		info := fmt.Sprintf(
+			"\n\t/* (!) NEED TO IGNORE THESE FIELDS: 0x%0.8x */",
+			ignored)
+		macro.Add(info).Add("\n\t_PAD_CFG_STRUCT(")
+	} else {
+		macro.Set("_PAD_CFG_STRUCT(")
 	}
-	macro.Add("\n\t_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn()
-	macro.Add(") | PAD_RESET(").Rstsrc().Add(") | ").irqInputRoute().Add(")")
+
+	macro.Id().Add(",\n\t\tPAD_FUNC(").Padfn().Add(") | PAD_RESET(").Rstsrc().Add(") | ")
+	macro.irqInputRoute().Add(")")
 	if dw0.GetGPIORxTxDisableStatus() != 0 {
 		macro.Add(" | PAD_BUF(").Bufdis().Add(")")
 	}
@@ -393,7 +398,7 @@ func (macro *Macro) Generate() string {
 	if config.IsNonCheckingFlagUsed() {
 		// Generate macros without checking
 		ignored := dw0.IgnoredFieldsGet()
-		if ignored != 0 {
+		if ignored != 0 && config.InfoLevelGet() >= 3 {
 			// If some fields were ignored when the macro was generated, then we will
 			// show them in the comment
 			info := fmt.Sprintf(

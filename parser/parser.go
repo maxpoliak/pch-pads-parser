@@ -67,11 +67,17 @@ func (info *padInfo) padInfoRawFprint() {
 func (info *padInfo) padInfoMacroFprint(macro string) {
 	info.dw1 &= 0xffffff00
 	if len(info.function) > 0 {
-		fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s (DW0: 0x%0.8x, DW1: 0x%0.8x) */\n",
+
+		fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s ",
 				info.id,
-				info.function,
+				info.function)
+		if config.InfoLevelGet() >= 1 {
+			fmt.Fprintf(config.OutputGenFile, "(DW0: 0x%0.8x, DW1: 0x%0.8x) */\n",
 				info.dw0,
 				info.dw1)
+		} else {
+			fmt.Fprintf(config.OutputGenFile, "*/\n");
+		}
 	}
 	fmt.Fprintf(config.OutputGenFile, "\t%s\n", macro)
 }
