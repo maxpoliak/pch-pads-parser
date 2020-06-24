@@ -197,7 +197,7 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 	macro.Set("PAD_CFG")
 	if dw1.GetIOStandbyState() != 0 || dw1.GetIOStandbyTermination() != 0 {
 		// PAD_CFG_GPO_IOSSTATE_IOSTERM(GPIO_91, 0, DEEP, NONE, Tx0RxDCRx0, DISPUPD),
-		macro.Add("_IOSSTATE_IOSTERM(").Id().Val().Pull().IOSstate().IOTerm()
+		macro.Add("_GPO_IOSSTATE_IOSTERM(").Id().Val().Pull().IOSstate().IOTerm()
 	} else {
 		if term != 0 {
 			// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
