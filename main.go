@@ -37,25 +37,44 @@ func main() {
 	// Command line arguments
 	inputFileName := flag.String("file",
 		"inteltool.log",
-		"the path to the inteltool log file")
+		"the path to the inteltool log file\n")
 
 	outputFileName := flag.String("o",
 		"generate/gpio.h",
-		"the path to the generated file with GPIO configuration")
+		"the path to the generated file with GPIO configuration\n")
 
 	rawFlag := flag.Bool("raw",
 		false,
-		"generate macros with raw values of registers DW0, DW1")
+		"generate macros with raw values of registers DW0, DW1\n")
 
 	advFlag := flag.Bool("adv",
 		false,
-		"generate advanced macros only")
+		"generate advanced macros only\n")
 
 	nonCheckFlag := flag.Bool("n",
 		false,
-		"generate macros without checking.\n" +
-		"In this case, some fields of the configuration registers\n" +
-		"DW0 will be ignored.")
+		"Generate macros without checking.\n" +
+		"\tIn this case, some fields of the configuration registers\n" +
+		"\tDW0 will be ignored.\n")
+
+	infoLevel1 := flag.Bool("i",
+		false,
+		"\n\tInfo Level 1: adds DW0/DW1 value to the comments:\n" +
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n")
+
+	infoLevel2 := flag.Bool("ii",
+		false,
+		"Info Level 2: adds original macro to the comments:\n" +
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
+		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n")
+
+	infoLevel3 := flag.Bool("iii",
+		false,
+		"Info Level 3: adds information about bit fields that (need to be ignored)\n" +
+		"\twere ignored to generate a macro:\n" +
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
+		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n" + 
+		"\t/* (!) NEED TO IGNORE THESE FIELDS: 0x04000000 */\n")
 
 	template := flag.Int("t", 0, "template type number\n"+
 		"\t0 - inteltool.log (default)\n"+
@@ -72,6 +91,14 @@ func main() {
 	config.RawFormatFlagSet(*rawFlag)
 	config.AdvancedFormatFlagSet(*advFlag)
 	config.NonCheckingFlagSet(*nonCheckFlag)
+
+	if *infoLevel1 {
+		config.InfoLevelSet(1)
+	} else if *infoLevel2 {
+		config.InfoLevelSet(2)
+	} else if *infoLevel3 {
+		config.InfoLevelSet(3)
+	}
 
 	if valid := config.PlatformSet(*platform); valid != 0 {
 		fmt.Printf("Error: invalid platform!\n")
