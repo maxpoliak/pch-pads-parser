@@ -224,6 +224,12 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 		macro.Add("(").Id().Pull().Rstsrc().Padfn()
 	}
 	macro.Add("),")
+
+	if dw0 := macro.Register(PAD_CFG_DW0); dw0.GetGPIORxTxDisableStatus() != 0 {
+		// Since the bufbis parameter will be ignored for NF, we should clear
+		// the corresponding bits in the control mask.
+		dw0.CntrMaskFieldsClear(common.RxTxBufDisableMask)
+	}
 }
 
 // Adds PAD_NC macro
@@ -233,7 +239,7 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 	if dw1.GetIOStandbyState() == common.TxDRxE {
 		dw0 := macro.Register(PAD_CFG_DW0)
 
-		// See sunrise/macro.go : NoConnMacroAdd()
+		// See comments in sunrise/macro.go : NoConnMacroAdd()
 		if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
 			dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
 		}
