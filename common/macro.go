@@ -541,7 +541,7 @@ func (macro *Macro) Generate() string {
 	}
 
 	if config.IsNonCheckingFlagUsed() {
-		macro.AddToMacroIgnoredMask("(!) THESE FIELDS WERE IGNORED: ").Add("\n\t")
+		macro.AddToMacroIgnoredMask("(!) THESE FIELDS WERE IGNORED: ")
 		return macro.Get()
 	}
 
