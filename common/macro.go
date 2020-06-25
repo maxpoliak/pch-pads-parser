@@ -468,18 +468,34 @@ func (macro *Macro) AddToMacroIgnoredMask(title string) *Macro {
 
 // Generate Advanced Macro
 func (macro *Macro) Advanced() *Macro {
+	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
+
+	// Get mask of ignored bit fields.
+	dw0Ignored := dw0.IgnoredFieldsGet()
+	dw1Ignored := dw1.IgnoredFieldsGet()
 
 	if config.InfoLevelGet() <= 1 {
 		macro.Set("")
 	} else if config.InfoLevelGet() >= 2 {
-		// Add string of a reference macro as a comment
+		// Add string of reference macro as a comment
 		reference := macro.Get()
 		macro.Set("/* ").Add(reference).Add(" */")
-		macro.AddToMacroIgnoredMask("(!) NEED TO IGNORE THESE FIELDS: ").Add("\n\t")
+		macro.AddToMacroIgnoredMask("(!) NEED TO IGNORE THESE FIELDS: ")
+		macro.Add("\n\t")
+	}
+	macro.Add("_PAD_CFG_STRUCT(").Id().Add(",")
+
+	if config.AreFieldsIgnored() {
+		// Consider bit fields that should be ignored when regenerating
+		// advansed macros
+		var tempVal uint32 = dw0.ValueGet() & ^dw0Ignored
+		dw0.ValueSet(tempVal)
+
+		tempVal = dw1.ValueGet() & ^dw1Ignored
+		dw1.ValueSet(tempVal)
 	}
 
-	macro.Add("_PAD_CFG_STRUCT(").Id().Add(",")
 	macro.Add("\n\t\t").dw0Decode()
 	if dw1.ValueGet() != 0 {
 		macro.Add(",\n\t\t").dw1Decode().Add("),")

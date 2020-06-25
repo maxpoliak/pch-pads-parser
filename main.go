@@ -51,6 +51,10 @@ func main() {
 		false,
 		"generate advanced macros only\n")
 
+	ignFlag := flag.Bool("ign",
+		false,
+		"exclude fields that should be ignored from advanced macros\n")
+
 	nonCheckFlag := flag.Bool("n",
 		false,
 		"Generate macros without checking.\n" +
@@ -95,6 +99,7 @@ func main() {
 
 	config.RawFormatFlagSet(*rawFlag)
 	config.AdvancedFormatFlagSet(*advFlag)
+	config.IgnoredFieldsFlagSet(*ignFlag)
 	config.NonCheckingFlagSet(*nonCheckFlag)
 
 	if *infoLevel1 {

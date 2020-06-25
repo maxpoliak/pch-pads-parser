@@ -57,6 +57,14 @@ func IsAdvancedFormatUsed() bool {
 	return useAdvancedFormat
 }
 
+var ignoredFieldsFormat bool = false
+func IgnoredFieldsFlagSet(flag bool) {
+	ignoredFieldsFormat = flag
+}
+func AreFieldsIgnored() bool {
+	return ignoredFieldsFormat
+}
+
 var nonCheckingFlag bool = false
 func NonCheckingFlagSet(flag bool) {
 	nonCheckingFlag = flag
