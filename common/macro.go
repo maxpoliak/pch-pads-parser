@@ -294,7 +294,7 @@ func (macro *Macro) dw0Decode() *Macro {
 		{	// PAD_FUNC(NF3)
 			"PAD_FUNC",
 			func(macro *Macro, name string) {
-				if dw0.GetPadMode() != 0 || config.IsAdvancedFormatUsed() {
+				if dw0.GetPadMode() != 0 || config.InfoLevelGet() <= 3 {
 					macro.or().Add(name).Add("(").Padfn().Add(")")
 				}
 			},
