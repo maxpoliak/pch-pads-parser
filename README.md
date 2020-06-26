@@ -1,26 +1,27 @@
-Pads Configuration Parser for Intel PCH
-=======================================
+Pads Configuration Parser for Intel PCH (intelp2m)
+==================================================
 
-A small utility for converting a pad configuration from the inteltool
-dump to the PAD_CFG macro for [coreboot] project.
+This utility allows to convert the configuration DW0/1 registers value
+from [inteltool] dump to [coreboot] macros.
 
 ```bash
-(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.2
-(shell)$ go build
-(shell)$ ./pch-pads-parser -file /path/to/inteltool.log
+(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.3
+(shell)$ make
+(shell)$ ./intelp2m -h
+(shell)$ ./intelp2m -file /path/to/inteltool.log
 ```
 
 To generate the gpio.c with raw DW0/1 register values you need to use
 the -raw option:
 
 ```bash
-  (shell)$ ./pch-pads-parser -raw -file /path/to/inteltool.log
+  (shell)$ ./intelp2m -raw -file /path/to/inteltool.log
 ```
 
 Test:
 ```bash
-(shell)$ ./pch-pads-parser -file examples/inteltool-asrock-h110m-dvs.log
-(shell)$ ./pch-pads-parser -file examples/inteltool-asrock-h110m-stx.log
+(shell)$ ./intelp2m -file examples/inteltool-asrock-h110m-dvs.log
+(shell)$ ./intelp2m -file examples/inteltool-asrock-h110m-stx.log
 ```
 
 It is possible to use templates for parsing files of excellent inteltool.log.
@@ -29,13 +30,13 @@ using template type # 1, you can parse gpio.h from an already added board in
 the coreboot project.
 
 ```bash
-(shell)$ ./pch-pads-parser -h
+(shell)$ ./intelp2m -h
 	-t
 	template type number
 		0 - inteltool.log (default)
 		1 - gpio.h
 		2 - your template
-(shell)$ ./pch-pads-parser -t 1 -file coreboot/src/mainboard/youboard/gpio.h
+(shell)$ ./intelp2m -t 1 -file coreboot/src/mainboard/youboard/gpio.h
 ```
 You can also add add a template to 'parser/template.go' for your file type with
 the configuration of the pads.
@@ -45,33 +46,121 @@ platform type is set using the -p option (Sunrise by default):
 ```bash
 	-p string
 	set up a platform
-		snr - Sunrise PCH or Skylake/Kaby Lake SoC
-		lbg - Lewisburg PCH with Xeon SP
+		snr - Sunrise PCH with Skylake/Kaby Lake CPU
+		lbg - Lewisburg PCH with Xeon SP CPU
 		apl - Apollo Lake SoC
 	(default "snr")
 
-./pch-pads-parser -p apl -file path/to/inteltool.log
+(shell)$./intelp2m -p <platform> -file path/to/inteltool.log
 ```
 
-Use the -adv option to only generate extended macros:
+Use the -adv option to only generate advanced macros:
 
 ```bash
-./pch-pads-parser -adv -p apl -file ../apollo-inteltool.log
+(shell)$./intelp2m -adv -p apl -file ../apollo-inteltool.log
 ```
 
+```c
+_PAD_CFG_STRUCT(GPIO_37,
+    PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF),
+    PAD_PULL(DN_20K)),
+```
 ### Macro Check
 
 After generating the macro, the utility checks all used
 fields of the configuration registers. If some field has been
-ignored, the utility generates extended macros. To not check
+ignored, the utility generates advanced macros. To not check
 macros, use the -n option:
 
 ```bash
-./pch-pads-parser -n -p apl -file ../apollo-inteltool.log
+(shell)$./intelp2m -n -file /path/to/inteltool.log
 ```
 
 In this case, some fields of the configuration registers
 DW0 will be ignored.
+
+### Information level
+
+The utility can generate additional information about the bit
+fields of the DW0 and DW1 configuration registers:
+
+```c
+/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */ --> (1)
+/* PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD), */ --> (2)
+/* (!) NEED TO IGNORE THESE FIELDS: DW0(0x04000000) */ --> (3)
+/* (!) DW0 : PAD_TRIG(OFF) - IGNORED */ --> (4)
+_PAD_CFG_STRUCT(GPIO_39,
+    PAD_FUNC(NF1) | PAD_RESET(DEEP) | PAD_TRIG(OFF),
+    PAD_PULL(UP_20K) | PAD_IOSTERM(DISPUPD)),
+```
+
+Using the options -i, -ii, -iii, -iiii you can set the info level
+from (1) to (4):
+
+```bash
+(shell)$./intelp2m -i -file /path/to/inteltool.log
+(shell)$./intelp2m -ii -file /path/to/inteltool.log
+(shell)$./intelp2m -iii -file /path/to/inteltool.log
+(shell)$./intelp2m -iiii -file /path/to/inteltool.log
+```
+
+(1) : print initial raw values of configuration registers from
+inteltool dump
+DW0: 0x44000400, DW1: 0x00003100
+
+(2) : print the target macro that will generate if you use the
+-n option
+PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
+
+(3) : print fields to be ignored if the advanced macro is
+converted to the target macro from (2)
+(!) NEED TO IGNORE THESE FIELDS: DW0(0x04000000)
+
+(4) : print decoded fields from (3) as macros
+(!) DW0 : PAD_TRIG(OFF) - IGNORED
+
+### Ignoring Fields
+
+Utilities can generate the _PAD_CFG_STRUCT advanced macro and
+exclude fields from it that are not in the corresponding PAD_CFG_*()
+macro:
+
+```bash
+(shell)$./intelp2m -iiii -adv -ign -file /path/to/inteltool.log
+```
+
+```c
+/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */
+/* PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD), */
+/* (!) NEED TO IGNORE THESE FIELDS: DW0(0x04000000) */
+/* (!) DW0 : PAD_TRIG(OFF) - IGNORED */
+_PAD_CFG_STRUCT(GPIO_39,
+    PAD_FUNC(NF1) | PAD_RESET(DEEP),
+    PAD_PULL(UP_20K) | PAD_IOSTERM(DISPUPD)),
+```
+
+If you generate macros without checking, you can see bit fields that
+were ignored:
+
+```bash
+(shell)$./intelp2m -iiii -n -file /path/to/inteltool.log
+```
+
+```c
+/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */
+PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
+/* (!) THESE FIELDS WERE IGNORED: DW0(0x04000000) */
+/* (!) DW0 : PAD_TRIG(OFF) - IGNORED */
+```
+
+```bash
+(shell)$./intelp2m -n -file /path/to/inteltool.log
+```
+
+```c
+/* GPIO_39 - LPSS_UART0_TXD */
+PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
+```
 
 
 ### Supports Chipsets
@@ -79,3 +168,4 @@ DW0 will be ignored.
   Sunrise PCH, Lewisburg PCH, Apollo Lake SoC
 
 [coreboot]: https://github.com/coreboot/coreboot
+[inteltool]: https://github.com/coreboot/coreboot/tree/master/util/inteltool
