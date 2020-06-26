@@ -125,6 +125,15 @@ func main() {
 		fmt.Printf("Error: inteltool log file was not found!\n")
 		os.Exit(1)
 	}
+
+	// create dir for output files
+	err = os.MkdirAll("generate", os.ModePerm)
+	if err != nil {
+		fmt.Printf("Error! Can not create a directory for the generated files!\n")
+		os.Exit(1)
+	}
+
+	// create empty gpio.h file
 	outputGenFile, err := os.Create(*outputFileName)
 	if err != nil {
 		fmt.Printf("Error: unable to generate GPIO config file!\n")
@@ -139,13 +148,6 @@ func main() {
 
 	parser := parser.ParserData{Template: *template}
 	parser.Parse()
-
-	// create dir for output files
-	err = os.MkdirAll("generate", os.ModePerm)
-	if err != nil {
-		fmt.Printf("Error! Can not create a directory for the generated files!\n")
-		os.Exit(1)
-	}
 
 	// gpio.h
 	err = generateOutputFile(&parser)
