@@ -35,12 +35,19 @@ type PlatformSpecific struct {}
 // return: macro
 func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
-	var resetSrcMap = map[uint8]string{
-		0x0: "PWROK",
-		0x1: "DEEP",
-		0x2: "PLTRST",
+	// See src/soc/intel/apollolake/gpio_apl.c:
+	// static const struct reset_mapping rst_map[] = {
+	// { .logical = PAD_CFG0_LOGICAL_RESET_PWROK,  .chipset = 0U << 30 },
+	// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30 },
+	// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30 },
+	// };
+
+	var resetsrc = map[uint8]string{
+		0: "PWROK",
+		1: "DEEP",
+		2: "PLTRST",
 	}
-	str, valid := resetSrcMap[dw0.GetResetConfig()]
+	str, valid := resetsrc[dw0.GetResetConfig()]
 	if !valid {
 			str = "RESERVED"
 	}
@@ -256,7 +263,7 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 		if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
 			dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
 		}
-		if dw0.GetResetConfig() != common.RST_DEEP {
+		if dw0.GetResetConfig() != 1 { // 1 = RST_DEEP
 			dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
 		}
 

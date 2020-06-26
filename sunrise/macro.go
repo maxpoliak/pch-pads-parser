@@ -20,13 +20,6 @@ const (
 	MAX_DW_NUM  = common.MAX_DW_NUM
 )
 
-const (
-	TRIG_LEVEL       = 0
-	TRIG_EDGE_SINGLE = 1
-	TRIG_OFF         = 2
-	TRIG_EDGE_BOTH   = 3
-)
-
 type PlatformSpecific struct {}
 
 // Adds the PADRSTCFG parameter from PAD_CFG_DW0 to the macro as a new argument
@@ -34,25 +27,40 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
 
 	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
-		// The pads from the GPD group in the Sunrise Point PCH have a specific Pad
-		// Reset Config Map, which differs from that in other groups. PADRSTCFG field
-		// in PAD_CFG_DW0 register should implements 3h value as RSMRST and 0h as PWROK
-		var gpdResetSrcMap = map[uint8]string{
-			0x0: "PWROK",
-			0x1: "DEEP",
-			0x2: "PLTRST",
-			0x3: "RSMRST",
+		// See reset map for the GPD Group in the Community 2:
+		// https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
+		// static const struct reset_mapping rst_map_com2[] = {
+		// { .logical = PAD_CFG0_LOGICAL_RESET_PWROK,  .chipset = 0U << 30},
+		// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30},
+		// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30},
+		// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 3U << 30},
+		// };
+		var resetsrc = map[uint8]string{
+			0: "PWROK",
+			1: "DEEP",
+			2: "PLTRST",
+			3: "RSMRST",
 		}
-		macro.Separator().Add(gpdResetSrcMap[dw0.GetResetConfig()])
+		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 		return
 	}
 
-	var resetSrcMap = map[uint8]string{
-		0x0: "RSMRST",
-		0x1: "DEEP",
-		0x2: "PLTRST",
+	// For other pads of the Sunrise Point chipset, as well as for all pads of the Lewisburg
+	// chipset, remapping of the card requires the port reset source value.
+	// See https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
+	// and https://github.com/coreboot/coreboot/blob/master/src/soc/intel/xeon_sp/gpio.c#L16
+	//
+	// static const struct reset_mapping rst_map[] = {
+	// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 0U << 30 },
+	// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30 },
+	// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30 },
+	// };
+	var remapping = map[uint8]string{
+		0: "RSMRST",
+		1: "DEEP",
+		2: "PLTRST",
 	}
-	str, valid := resetSrcMap[dw0.GetResetConfig()]
+	str, valid := remapping[dw0.GetResetConfig()]
 	if !valid {
 		str = "RESERVED"
 	}
@@ -125,14 +133,14 @@ func sciRoute(macro *common.Macro) bool {
 		return false
 	}
 	// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
-	if (dw0.GetRXLevelEdgeConfiguration() & TRIG_EDGE_SINGLE) != 0 {
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) != 0 {
 		// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
 		// #define PAD_CFG_GPI_ACPI_SCI(pad, pull, rst, inv)	\
 		//             PAD_CFG_GPI_SCI(pad, pull, rst, EDGE_SINGLE, inv)
 		macro.Add("_ACPI")
 	}
 	macro.Add("_SCI").Add("(").Id().Pull().Rstsrc()
-	if (dw0.GetRXLevelEdgeConfiguration() & TRIG_EDGE_SINGLE) == 0 {
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) == 0 {
 		macro.Trig()
 	}
 	macro.Invert().Add("),")
@@ -145,12 +153,12 @@ func smiRoute(macro *common.Macro) bool {
 	if dw0.GetGPIOInputRouteSMI() == 0 {
 		return false
 	}
-	if (dw0.GetRXLevelEdgeConfiguration() & TRIG_EDGE_SINGLE) != 0 {
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) != 0 {
 		// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
 		macro.Add("_ACPI")
 	}
 	macro.Add("_SMI").Add("(").Id().Pull().Rstsrc()
-	if (dw0.GetRXLevelEdgeConfiguration() & TRIG_EDGE_SINGLE) == 0 {
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) == 0 {
 		// e.g. PAD_CFG_GPI_SMI(GPP_E7, NONE, DEEP, LEVEL, NONE),
 		macro.Trig()
 	}
@@ -241,7 +249,7 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
 		dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
 	}
-	if dw0.GetResetConfig() != common.RST_DEEP {
+	if dw0.GetResetConfig() != 1 { // 1 = RST_DEEP
 		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
 	}
 

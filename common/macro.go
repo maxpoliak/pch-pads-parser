@@ -32,10 +32,7 @@ const (
 )
 
 const (
-	RST_PWROK  = 0
 	RST_DEEP   = 1
-	RST_PLTRST = 2
-	RST_RSMRST = 3
 )
 
 const (
