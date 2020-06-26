@@ -18,9 +18,9 @@ func generateOutputFile(parser *parser.ParserData) (err error) {
 #ifndef CFG_GPIO_H
 #define CFG_GPIO_H
 
-#include <soc/gpio.h>
+#include <gpio.h>
 
-/* Pad configuration  */
+/* Pad configuration was generated automatically using intelp2m utility */
 static const struct pad_config gpio_table[] = {
 `)
 	// Add the pads map
