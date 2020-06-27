@@ -77,7 +77,7 @@ func main() {
 		"Info Level 3: adds information about bit fields that (need to be ignored)\n" +
 		"\twere ignored to generate a macro:\n" +
 		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
-		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n" + 
+		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n" +
 		"\t/* (!) NEED TO IGNORE THESE FIELDS: 0x04000000 */\n")
 
 	infoLevel4 := flag.Bool("iiii",
