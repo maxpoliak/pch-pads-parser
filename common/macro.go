@@ -160,7 +160,7 @@ func (macro *Macro) Trig() *Macro {
 // return: Macro
 func (macro *Macro) Invert() *Macro {
 	macro.Separator()
-	if macro.Register(PAD_CFG_DW0).GetRXLevelConfiguration() !=0 {
+	if macro.Register(PAD_CFG_DW0).GetRxInvert() !=0 {
 		return macro.Add("INVERT")
 	}
 	return macro.Add("NONE")
@@ -338,7 +338,7 @@ func (macro *Macro) dw0Decode() *Macro {
 		{	// PAD_RX_POL(EDGE_SINGLE)
 			"PAD_RX_POL",
 			func(macro *Macro, name string) {
-				if dw0.GetRXLevelConfiguration() != 0 {
+				if dw0.GetRxInvert() != 0 {
 					macro.or().Add(name).Add("(").Invert().Add(")")
 				}
 			},

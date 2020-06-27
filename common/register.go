@@ -163,9 +163,9 @@ func (reg *Register) GetRXLevelEdgeConfiguration() uint8 {
 	return reg.getFieldVal(RxLevelEdgeConfigurationMask, RxLevelEdgeConfigurationShift)
 }
 
-// getRXLevelConfiguration - returns RX Invert state (RXINV)
+// GetRxInvert - returns RX Invert state (RXINV)
 // 1 - Inversion, 0 - No inversion
-func (reg *Register) GetRXLevelConfiguration() uint8 {
+func (reg *Register) GetRxInvert() uint8 {
 	return reg.getFieldVal(RxInvertMask, RxInvertShift)
 }
 

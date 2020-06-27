@@ -102,7 +102,7 @@ func ioApicRoute(macro *common.Macro) bool {
 
 	macro.Add("_APIC")
 	if dw0.GetRXLevelEdgeConfiguration() == common.TRIG_LEVEL {
-		if dw0.GetRXLevelConfiguration() != 0 {
+		if dw0.GetRxInvert() != 0 {
 			// PAD_CFG_GPI_APIC_INVERT(pad, pull, rst)
 			macro.Add("_INVERT")
 		}
