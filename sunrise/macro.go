@@ -91,8 +91,20 @@ func ioApicRoute(macro *common.Macro) bool {
 	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
 		return false
 	}
-	// e.g. PAD_CFG_GPI_APIC(pad, pull, rst, trig, inv)
-	macro.Add("_APIC").Add("(").Id().Pull().Rstsrc().Trig().Invert().Add("),")
+
+	macro.Add("_APIC")
+	if dw0.GetRXLevelEdgeConfiguration() == common.TRIG_LEVEL {
+		if dw0.GetRXLevelConfiguration() != 0 {
+			// PAD_CFG_GPI_APIC_INVERT(pad, pull, rst)
+			macro.Add("_INVERT")
+		}
+		// PAD_CFG_GPI_APIC(pad, pull, rst)
+		macro.Id().Add("(").Pull().Rstsrc().Add("),")
+		return true
+	}
+
+	// e.g. PAD_CFG_GPI_APIC_IOS(pad, pull, rst, trig, inv, iosstate, iosterm)
+	macro.Add("_IOS(").Id().Pull().Rstsrc().Trig().Invert().Add(", TxLASTRxE, SAME),")
 	return true
 }
 
