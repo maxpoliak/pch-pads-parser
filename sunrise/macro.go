@@ -62,7 +62,9 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	}
 	str, valid := remapping[dw0.GetResetConfig()]
 	if !valid {
-		str = "RESERVED"
+		// from intel doc: 3h = Reserved (implement as setting 0h)
+		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
+		str = "RSMRST"
 	}
 	macro.Separator().Add(str)
 }
