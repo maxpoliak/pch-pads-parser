@@ -230,21 +230,8 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 
 // Adds PAD_CFG_NF macro with arguments
 func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
-	dw0 := macro.Register(PAD_CFG_DW0)
-	isEdge := dw0.GetRXLevelEdgeConfiguration() != 0
-	isTxRxBufDis := dw0.GetGPIORxTxDisableStatus() != 0
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
-	macro.Set("PAD_CFG_NF")
-	if isEdge || isTxRxBufDis {
-		// e.g. PCHHOT#
-		// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
-		macro.Add("_BUF_TRIG")
-	}
-	macro.Add("(").Id().Pull().Rstsrc().Padfn()
-	if isEdge || isTxRxBufDis {
-		macro.Bufdis().Trig()
-	}
-	macro.Add("),")
+	macro.Set("PAD_CFG_NF").Add("(").Id().Pull().Rstsrc().Padfn().Add("),")
 }
 
 // Adds PAD_NC macro
