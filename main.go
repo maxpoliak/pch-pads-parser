@@ -14,14 +14,13 @@ import "./config"
 func generateOutputFile(parser *parser.ParserData) (err error) {
 
 	config.OutputGenFile.WriteString(`/* SPDX-License-Identifier: GPL-2.0-only */
-/* This file is part of the coreboot project. */
 
 #ifndef CFG_GPIO_H
 #define CFG_GPIO_H
 
-#include <soc/gpio.h>
+#include <gpio.h>
 
-/* Pad configuration  */
+/* Pad configuration was generated automatically using intelp2m utility */
 static const struct pad_config gpio_table[] = {
 `)
 	// Add the pads map
@@ -38,15 +37,53 @@ func main() {
 	// Command line arguments
 	inputFileName := flag.String("file",
 		"inteltool.log",
-		"the path to the inteltool log file")
+		"the path to the inteltool log file\n")
 
 	outputFileName := flag.String("o",
 		"generate/gpio.h",
-		"the path to the generated file with GPIO configuration")
+		"the path to the generated file with GPIO configuration\n")
 
 	rawFlag := flag.Bool("raw",
 		false,
-		"generate macros with raw values of registers DW0, DW1")
+		"generate macros with raw values of registers DW0, DW1\n")
+
+	advFlag := flag.Bool("adv",
+		false,
+		"generate advanced macros only\n")
+
+	ignFlag := flag.Bool("ign",
+		false,
+		"exclude fields that should be ignored from advanced macros\n")
+
+	nonCheckFlag := flag.Bool("n",
+		false,
+		"Generate macros without checking.\n" +
+		"\tIn this case, some fields of the configuration registers\n" +
+		"\tDW0 will be ignored.\n")
+
+	infoLevel1 := flag.Bool("i",
+		false,
+		"\n\tInfo Level 1: adds DW0/DW1 value to the comments:\n" +
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n")
+
+	infoLevel2 := flag.Bool("ii",
+		false,
+		"Info Level 2: adds original macro to the comments:\n" +
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
+		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n")
+
+	infoLevel3 := flag.Bool("iii",
+		false,
+		"Info Level 3: adds information about bit fields that (need to be ignored)\n" +
+		"\twere ignored to generate a macro:\n" +
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
+		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n" +
+		"\t/* (!) NEED TO IGNORE THESE FIELDS: 0x04000000 */\n")
+
+	infoLevel4 := flag.Bool("iiii",
+		false,
+		"Info Level 4: show decoded DW0/DW1 register:\n" +
+		"\t/* DW0: PAD_TRIG(DEEP) | PAD_BUF(TX_RX_DISABLE) FIELD IS IGNORED */\n")
 
 	template := flag.Int("t", 0, "template type number\n"+
 		"\t0 - inteltool.log (default)\n"+
@@ -61,6 +98,19 @@ func main() {
 	flag.Parse()
 
 	config.RawFormatFlagSet(*rawFlag)
+	config.AdvancedFormatFlagSet(*advFlag)
+	config.IgnoredFieldsFlagSet(*ignFlag)
+	config.NonCheckingFlagSet(*nonCheckFlag)
+
+	if *infoLevel1 {
+		config.InfoLevelSet(1)
+	} else if *infoLevel2 {
+		config.InfoLevelSet(2)
+	} else if *infoLevel3 {
+		config.InfoLevelSet(3)
+	} else if *infoLevel4 {
+		config.InfoLevelSet(4)
+	}
 
 	if valid := config.PlatformSet(*platform); valid != 0 {
 		fmt.Printf("Error: invalid platform!\n")
@@ -75,6 +125,15 @@ func main() {
 		fmt.Printf("Error: inteltool log file was not found!\n")
 		os.Exit(1)
 	}
+
+	// create dir for output files
+	err = os.MkdirAll("generate", os.ModePerm)
+	if err != nil {
+		fmt.Printf("Error! Can not create a directory for the generated files!\n")
+		os.Exit(1)
+	}
+
+	// create empty gpio.h file
 	outputGenFile, err := os.Create(*outputFileName)
 	if err != nil {
 		fmt.Printf("Error: unable to generate GPIO config file!\n")
@@ -89,13 +148,6 @@ func main() {
 
 	parser := parser.ParserData{Template: *template}
 	parser.Parse()
-
-	// create dir for output files
-	err = os.MkdirAll("generate", os.ModePerm)
-	if err != nil {
-		fmt.Printf("Error! Can not create a directory for the generated files!\n")
-		os.Exit(1)
-	}
 
 	// gpio.h
 	err = generateOutputFile(&parser)

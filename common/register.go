@@ -2,60 +2,62 @@ package common
 
 // Bit field constants for PAD_CFG_DW0 register
 const (
-	padRstCfgShift uint8  = 30
-	padRstCfgMask  uint32 = 0x3 << padRstCfgShift
+	AllFields uint32 = 0xffffffff
 
-	rxPadStateSelectShift uint8  = 29
-	rxPadStateSelectMask  uint32 = 0x1 << rxPadStateSelectShift
+	PadRstCfgShift uint8  = 30
+	PadRstCfgMask  uint32 = 0x3 << PadRstCfgShift
 
-	rxRawOverrideTo1Shift uint8  = 28
-	rxRawOverrideTo1Mask  uint32 = 0x1 << rxRawOverrideTo1Shift
+	RxPadStateSelectShift uint8  = 29
+	RxPadStateSelectMask  uint32 = 0x1 << RxPadStateSelectShift
 
-	rxLevelEdgeConfigurationShift uint8  = 25
-	rxLevelEdgeConfigurationMask  uint32 = 0x3 << rxLevelEdgeConfigurationShift
+	RxRawOverrideTo1Shift uint8  = 28
+	RxRawOverrideTo1Mask  uint32 = 0x1 << RxRawOverrideTo1Shift
 
-	rxInvertShift uint8  = 23
-	rxInvertMask  uint32 = 0x1 << rxInvertShift
+	RxLevelEdgeConfigurationShift uint8  = 25
+	RxLevelEdgeConfigurationMask  uint32 = 0x3 << RxLevelEdgeConfigurationShift
 
-	rxtxEnableConfigShift uint8  = 21
-	rxtxEnableConfigMask  uint32 = 0x3 << rxtxEnableConfigShift
+	RxInvertShift uint8  = 23
+	RxInvertMask  uint32 = 0x1 << RxInvertShift
 
-	gpioInputRouteIOxApicShift uint8  = 20
-	gpioInputRouteIOxApicMask  uint32 = 0x1 << gpioInputRouteIOxApicShift
+	RxTxEnableConfigShift uint8  = 21
+	RxTxEnableConfigMask  uint32 = 0x3 << RxTxEnableConfigShift
 
-	gpioInputRouteSCIShift uint8  = 19
-	gpioInputRouteSCIMask  uint32 = 0x1 << gpioInputRouteSCIShift
+	InputRouteIOxApicShift uint8  = 20
+	InputRouteIOxApicMask  uint32 = 0x1 << InputRouteIOxApicShift
 
-	gpioInputRouteSMIShift uint8  = 18
-	gpioInputRouteSMIMask  uint32 = 0x1 << gpioInputRouteSMIShift
+	InputRouteSCIShift uint8  = 19
+	InputRouteSCIMask  uint32 = 0x1 << InputRouteSCIShift
 
-	gpioInputRouteNMIShift uint8  = 17
-	gpioInputRouteNMIMask  uint32 = 0x1 << gpioInputRouteNMIShift
+	InputRouteSMIShift uint8  = 18
+	InputRouteSMIMask  uint32 = 0x1 << InputRouteSMIShift
 
-	padModeShift uint8  = 10
-	padModeMask  uint32 = 0x7 << padModeShift
+	InputRouteNMIShift uint8  = 17
+	InputRouteNMIMask  uint32 = 0x1 << InputRouteNMIShift
 
-	gpioRxTxDisableShift uint8  = 8
-	gpioRxTxDisableMask  uint32 = 0x3 << gpioRxTxDisableShift
+	PadModeShift uint8  = 10
+	PadModeMask  uint32 = 0x7 << PadModeShift
 
-	gpioRxStateShift uint8  = 1
-	gpioRxStateMask  uint32 = 0x1 << gpioRxStateShift
+	RxTxBufDisableShift uint8  = 8
+	RxTxBufDisableMask  uint32 = 0x3 << RxTxBufDisableShift
 
-	gpioTxStateMask uint32 = 0x1
+	RxStateShift uint8  = 1
+	RxStateMask  uint32 = 0x1 << RxStateShift
+
+	TxStateMask uint32 = 0x1
 )
 
 // Bit field constants for PAD_CFG_DW1 register
 const (
-	ioStandbyStateShift uint8  = 14
-	ioStandbyStateMask  uint32 = 0xF << ioStandbyStateShift
+	IOStandbyStateShift uint8  = 14
+	IOStandbyStateMask  uint32 = 0xF << IOStandbyStateShift
 
-	termShift uint8  = 10
-	termMask  uint32 = 0xF << termShift
+	TermShift uint8  = 10
+	TermMask  uint32 = 0xF << TermShift
 
-	ioStandbyTerminationShift uint8  = 8
-	ioStandbyTerminationMask  uint32 = 0x3 << ioStandbyTerminationShift
+	IOStandbyTerminationShift uint8  = 8
+	IOStandbyTerminationMask  uint32 = 0x3 << IOStandbyTerminationShift
 
-	interruptSelectShift uint32 = 0xFF
+	InterruptSelectShift uint32 = 0xFF
 )
 
 // config DW registers
@@ -106,49 +108,65 @@ func (reg *Register) getFieldVal(mask uint32, shift uint8) uint8 {
 	return uint8((reg.value & mask) >> shift)
 }
 
+// CntrMaskFieldsClear - clear filed in control mask
+// fieldMask - mask of the field to be cleared
+func (reg *Register) CntrMaskFieldsClear(fieldMask uint32) {
+	reg.mask &= ^fieldMask;
+}
+
+// IgnoredFieldsGet - return mask of unchecked (ignored) fields.
+//                    These bit fields were not read when the macro was
+//                    generated.
+// return
+//   mask of ignored bit field
+func (reg *Register) IgnoredFieldsGet() uint32 {
+	mask := reg.mask | reg.roFileds
+	return reg.value & ^mask
+}
+
 // Fix Pad Reset Config field in mask for DW0 register
 // Returns *Register
 func (reg *Register) MaskResetFix() *Register {
-	reg.mask |= padRstCfgMask
+	reg.mask |= PadRstCfgMask
 	return reg
 }
 
 // Fix RX Level/Edge Configuration field in mask for DW0 register
 // Returns *Register
 func (reg *Register) MaskTrigFix() *Register {
-	reg.mask |= rxLevelEdgeConfigurationMask
+	reg.mask |= RxLevelEdgeConfigurationMask
 	return reg
 }
 
 // getResetConfig - returns type reset source for corresponding pad
 // PADRSTCFG field in PAD_CFG_DW0 register
 func (reg *Register) GetResetConfig() uint8 {
-	return reg.getFieldVal(padRstCfgMask, padRstCfgShift)
+	return reg.getFieldVal(PadRstCfgMask, PadRstCfgShift)
 }
 
 // getRXPadStateSelect - returns RX Pad State (RXINV)
 // 0 = Raw RX pad state directly from RX buffer
 // 1 = Internal RX pad state
 func (reg *Register) GetRXPadStateSelect() uint8 {
-	return reg.getFieldVal(rxPadStateSelectMask, rxPadStateSelectShift)
+	return reg.getFieldVal(RxPadStateSelectMask, RxPadStateSelectShift)
 }
 
 // getRXRawOverrideStatus - returns 1 if the selected pad state is being
 // overridden to '1' (RXRAW1 field)
 func (reg *Register) GetRXRawOverrideStatus() uint8 {
-	return reg.getFieldVal(rxRawOverrideTo1Mask, rxRawOverrideTo1Shift)
+	return reg.getFieldVal(RxRawOverrideTo1Mask, RxRawOverrideTo1Shift)
 }
 
 // getRXLevelEdgeConfiguration - returns RX Level/Edge Configuration (RXEVCFG)
 // 0h = Level, 1h = Edge, 2h = Drive '0', 3h = Reserved (implement as setting 0h)
 func (reg *Register) GetRXLevelEdgeConfiguration() uint8 {
-	return reg.getFieldVal(rxLevelEdgeConfigurationMask, rxLevelEdgeConfigurationShift)
+	return reg.getFieldVal(RxLevelEdgeConfigurationMask, RxLevelEdgeConfigurationShift)
 }
 
-// getRXLevelConfiguration - returns RX Invert state (RXINV)
+// GetRxInvert - returns RX Invert state (RXINV)
 // 1 - Inversion, 0 - No inversion
-func (reg *Register) GetRXLevelConfiguration() bool {
-	return reg.getFieldVal(rxInvertMask, rxInvertShift) != 0
+func (reg *Register) GetRxInvert() uint8 {
+	return reg.getFieldVal(RxInvertMask, RxInvertShift)
 }
 
 // getRxTxEnableConfig - returns RX/TX Enable Config (RXTXENCFG)
@@ -157,31 +175,31 @@ func (reg *Register) GetRXLevelConfiguration() bool {
 // 2 = Function controls TX Enable and RX Disabled with RX drive 1 internally
 // 3 = Function controls TX Enabled and RX is always enabled
 func (reg *Register) GetRxTxEnableConfig() uint8 {
-	return reg.getFieldVal(rxtxEnableConfigMask, rxtxEnableConfigShift)
+	return reg.getFieldVal(RxTxEnableConfigMask, RxTxEnableConfigShift)
 }
 
 // getGPIOInputRouteIOxAPIC - returns 1 if the pad can be routed to cause
 // peripheral IRQ when configured in GPIO input mode.
-func (reg *Register) GetGPIOInputRouteIOxAPIC() bool {
-	return reg.getFieldVal(gpioInputRouteIOxApicMask, gpioInputRouteIOxApicShift) != 0
+func (reg *Register) GetGPIOInputRouteIOxAPIC() uint8 {
+	return reg.getFieldVal(InputRouteIOxApicMask, InputRouteIOxApicShift)
 }
 
 // getGPIOInputRouteSCI - returns 1 if the pad can be routed to cause SCI when
 // configured in GPIO input mode.
-func (reg *Register) GetGPIOInputRouteSCI() bool {
-	return reg.getFieldVal(gpioInputRouteSCIMask, gpioInputRouteSCIShift) != 0
+func (reg *Register) GetGPIOInputRouteSCI() uint8 {
+	return reg.getFieldVal(InputRouteSCIMask, InputRouteSCIShift)
 }
 
 // getGPIOInputRouteSMI - returns 1 if the pad can be routed to cause SMI when
 // configured in GPIO input mode
-func (reg *Register) GetGPIOInputRouteSMI() bool {
-	return reg.getFieldVal(gpioInputRouteSMIMask, gpioInputRouteSMIShift) != 0
+func (reg *Register) GetGPIOInputRouteSMI() uint8 {
+	return reg.getFieldVal(InputRouteSMIMask, InputRouteSMIShift)
 }
 
 // getGPIOInputRouteNMI - returns 1 if the pad can be routed to cause NMI when
 // configured in GPIO input mode
-func (reg *Register) GetGPIOInputRouteNMI() bool {
-	return reg.getFieldVal(gpioInputRouteNMIMask, gpioInputRouteNMIShift) != 0
+func (reg *Register) GetGPIOInputRouteNMI() uint8 {
+	return reg.getFieldVal(InputRouteNMIMask, InputRouteNMIShift)
 }
 
 // getPadMode - reutrns pad mode or one of the native functions
@@ -191,23 +209,23 @@ func (reg *Register) GetGPIOInputRouteNMI() bool {
 // 3h = native function 3, if applicable, controls the Pad
 // 4h = enable GPIO blink/PWM capability if applicable
 func (reg *Register) GetPadMode() uint8 {
-	return reg.getFieldVal(padModeMask, padModeShift)
+	return reg.getFieldVal(PadModeMask, PadModeShift)
 }
 
 // getGPIORxTxDisableStatus - returns GPIO RX/TX buffer state (GPIORXDIS | GPIOTXDIS)
 // 0 - both are enabled, 1 - TX Disable, 2 - RX Disable, 3 - both are disabled
 func (reg *Register) GetGPIORxTxDisableStatus() uint8 {
-	return reg.getFieldVal(gpioRxTxDisableMask, gpioRxTxDisableShift)
+	return reg.getFieldVal(RxTxBufDisableMask, RxTxBufDisableShift)
 }
 
 // getGPIORXState - returns GPIO RX State (GPIORXSTATE)
 func (reg *Register) GetGPIORXState() uint8 {
-	return reg.getFieldVal(gpioRxStateMask, gpioRxStateShift)
+	return reg.getFieldVal(RxStateMask, RxStateShift)
 }
 
 // getGPIOTXState - returns GPIO TX State (GPIOTXSTATE)
-func (reg *Register) GetGPIOTXState() int {
-	return int(reg.getFieldVal(gpioTxStateMask, 0))
+func (reg *Register) GetGPIOTXState() uint8 {
+	return reg.getFieldVal(TxStateMask, 0)
 }
 
 // getIOStandbyState - return IO Standby State (IOSSTATE)
@@ -224,7 +242,7 @@ func (reg *Register) GetGPIOTXState() int {
 // 15 = IO-Standby is ignored for this pin (same as functional mode)
 // Others reserved
 func (reg *Register) GetIOStandbyState() uint8 {
-	return reg.getFieldVal(ioStandbyStateMask, ioStandbyStateShift)
+	return reg.getFieldVal(IOStandbyStateMask, IOStandbyStateShift)
 }
 
 // getIOStandbyTermination - return IO Standby Termination (IOSTERM)
@@ -233,7 +251,7 @@ func (reg *Register) GetIOStandbyState() uint8 {
 // 2 = Enable Pull-down
 // 3 = Enable Pull-up
 func (reg *Register) GetIOStandbyTermination() uint8 {
-	return reg.getFieldVal(ioStandbyTerminationMask, ioStandbyTerminationShift)
+	return reg.getFieldVal(IOStandbyTerminationMask, IOStandbyTerminationShift)
 }
 
 // getTermination - returns the pad termination state defines the different weak
@@ -241,10 +259,10 @@ func (reg *Register) GetIOStandbyTermination() uint8 {
 // 0000 = none; 0010 = 5k PD; 0100 = 20k PD; 1010 = 5k PU; 1100 = 20k PU;
 // 1111 = Native controller selected
 func (reg *Register) GetTermination() uint8 {
-	return reg.getFieldVal(termMask, termShift)
+	return reg.getFieldVal(TermMask, TermShift)
 }
 
 // getInterruptSelect - returns Interrupt Line number from the GPIO controller
 func (reg *Register) GetInterruptSelect() uint8 {
-	return reg.getFieldVal(interruptSelectShift, 0)
+	return reg.getFieldVal(InterruptSelectShift, 0)
 }

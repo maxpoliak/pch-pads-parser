@@ -11,7 +11,7 @@ import "../common"
 
 const (
 	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe
-	PAD_CFG_DW1_RO_FIELDS = 0xfffffc3f
+	PAD_CFG_DW1_RO_FIELDS = 0xffffc3ff
 )
 
 const (
@@ -27,27 +27,44 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
 
 	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
-		// The pads from the GPD group in the Sunrise Point PCH have a specific Pad
-		// Reset Config Map, which differs from that in other groups. PADRSTCFG field
-		// in PAD_CFG_DW0 register should implements 3h value as RSMRST and 0h as PWROK
-		var gpdResetSrcMap = map[uint8]string{
-			0x0: "PWROK",
-			0x1: "DEEP",
-			0x2: "PLTRST",
-			0x3: "RSMRST",
+		// See reset map for the GPD Group in the Community 2:
+		// https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
+		// static const struct reset_mapping rst_map_com2[] = {
+		// { .logical = PAD_CFG0_LOGICAL_RESET_PWROK,  .chipset = 0U << 30},
+		// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30},
+		// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30},
+		// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 3U << 30},
+		// };
+		var resetsrc = map[uint8]string{
+			0: "PWROK",
+			1: "DEEP",
+			2: "PLTRST",
+			3: "RSMRST",
 		}
-		macro.Separator().Add(gpdResetSrcMap[dw0.GetResetConfig()])
+		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 		return
 	}
 
-	var resetSrcMap = map[uint8]string{
-		0x0: "RSMRST",
-		0x1: "DEEP",
-		0x2: "PLTRST",
+	// For other pads of the Sunrise Point chipset, as well as for all pads of the Lewisburg
+	// chipset, remapping of the card requires the port reset source value.
+	// See https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
+	// and https://github.com/coreboot/coreboot/blob/master/src/soc/intel/xeon_sp/gpio.c#L16
+	//
+	// static const struct reset_mapping rst_map[] = {
+	// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 0U << 30 },
+	// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30 },
+	// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30 },
+	// };
+	var remapping = map[uint8]string{
+		0: "RSMRST",
+		1: "DEEP",
+		2: "PLTRST",
 	}
-	str, valid := resetSrcMap[dw0.GetResetConfig()]
+	str, valid := remapping[dw0.GetResetConfig()]
 	if !valid {
-		str = "RESERVED"
+		// from intel doc: 3h = Reserved (implement as setting 0h)
+		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
+		str = "RSMRST"
 	}
 	macro.Separator().Add(str)
 }
@@ -78,81 +95,128 @@ func (PlatformSpecific) Pull(macro *common.Macro) {
 	macro.Separator().Add(str)
 }
 
+// Generate macro to cause peripheral IRQ when configured in GPIO input mode
+func ioApicRoute(macro *common.Macro) bool {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
+		return false
+	}
+
+	macro.Add("_APIC")
+	if dw0.GetRXLevelEdgeConfiguration() == common.TRIG_LEVEL {
+		if dw0.GetRxInvert() != 0 {
+			// PAD_CFG_GPI_APIC_INVERT(pad, pull, rst)
+			macro.Add("_INVERT")
+		}
+		// PAD_CFG_GPI_APIC(pad, pull, rst)
+		macro.Id().Add("(").Pull().Rstsrc().Add("),")
+		return true
+	}
+
+	// e.g. PAD_CFG_GPI_APIC_IOS(pad, pull, rst, trig, inv, iosstate, iosterm)
+	macro.Add("_IOS(").Id().Pull().Rstsrc().Trig().Invert().Add(", TxLASTRxE, SAME),")
+	return true
+}
+
+// Generate macro to cause NMI when configured in GPIO input mode
+func nmiRoute(macro *common.Macro) bool {
+	if macro.Register(PAD_CFG_DW0).GetGPIOInputRouteNMI() == 0 {
+		return false
+	}
+	// PAD_CFG_GPI_NMI(GPIO_24, UP_20K, DEEP, LEVEL, INVERT),
+	macro.Add("_NMI").Add("(").Id().Pull().Rstsrc().Trig().Invert().Add("),")
+	return true
+}
+
+// Generate macro to cause SCI when configured in GPIO input mode
+func sciRoute(macro *common.Macro) bool {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	if dw0.GetGPIOInputRouteSCI() == 0 {
+		return false
+	}
+	// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) != 0 {
+		// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
+		// #define PAD_CFG_GPI_ACPI_SCI(pad, pull, rst, inv)	\
+		//             PAD_CFG_GPI_SCI(pad, pull, rst, EDGE_SINGLE, inv)
+		macro.Add("_ACPI")
+	}
+	macro.Add("_SCI").Add("(").Id().Pull().Rstsrc()
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) == 0 {
+		macro.Trig()
+	}
+	macro.Invert().Add("),")
+	return true
+}
+
+// Generate macro to cause SMI when configured in GPIO input mode
+func smiRoute(macro *common.Macro) bool {
+	dw0 := macro.Register(PAD_CFG_DW0)
+	if dw0.GetGPIOInputRouteSMI() == 0 {
+		return false
+	}
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) != 0 {
+		// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
+		macro.Add("_ACPI")
+	}
+	macro.Add("_SMI").Add("(").Id().Pull().Rstsrc()
+	if (dw0.GetRXLevelEdgeConfiguration() & common.TRIG_EDGE_SINGLE) == 0 {
+		// e.g. PAD_CFG_GPI_SMI(GPP_E7, NONE, DEEP, LEVEL, NONE),
+		macro.Trig()
+	}
+	macro.Invert().Add("),")
+	return true
+}
+
 // Adds PAD_CFG_GPI macro with arguments
 func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
-	dw0 := macro.Register(PAD_CFG_DW0)
-	isEdge := dw0.GetRXLevelEdgeConfiguration()
-	macro.Add("_GPI")
-	switch {
-	case dw0.GetGPIOInputRouteNMI():
-		// e.g. PAD_CFG_GPI_NMI(GPIO_24, UP_20K, DEEP, LEVEL, INVERT),
-		macro.Add("_NMI").Add("(").Id().Pull().Rstsrc().Trig().Invert()
+	var ids []string
 
-	case dw0.GetGPIOInputRouteIOxAPIC():
-		// e.g. PAD_CFG_GPI_APIC(GPP_B3, NONE, PLTRST)
-		macro.Add("_APIC")
-		if isEdge == 0 {
-			if dw0.GetRXLevelConfiguration() {
-				// e.g. PAD_CFG_GPI_APIC_INVERT(GPP_C5, DN_20K, DEEP),
-				macro.Add("_INVERT")
-			}
-			macro.Add("(").Id().Pull().Rstsrc()
-		} else {
-			// PAD_CFG_GPI_APIC_IOS(GPP_C20, NONE, DEEP, LEVEL, INVERT,
-			// TxLASTRxE, SAME) macro isn't used for this chipset. But, in
-			// the case when SOC_INTEL_COMMON_BLOCK_GPIO_LEGACY_MACROS is
-			// defined in the config, this macro allows you to set trig and
-			// invert parameters.
-			macro.Add("_IOS").Add("(").Id().Pull().Rstsrc().Trig().Invert()
-			// IOStandby Config will be ignored for the Sunrise PCH, so use
-			// any values
-			macro.Add(", TxLASTRxE, SAME")
+	macro.Set("PAD_CFG_GPI")
+	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
+		"IOAPIC": ioApicRoute,
+		"SCI":    sciRoute,
+		"SMI":    smiRoute,
+		"NMI":    nmiRoute,
+	} {
+		if isRoute(macro) {
+			ids = append(ids, routeid)
 		}
-
-	case dw0.GetGPIOInputRouteSCI():
-
-		// e.g. PAD_CFG_GPI_SCI(GPP_B18, UP_20K, PLTRST, LEVEL, INVERT),
-		if (isEdge & 0x1) != 0 {
-			// e.g. PAD_CFG_GPI_ACPI_SCI(GPP_G2, NONE, DEEP, YES),
-			macro.Add("_ACPI")
-		}
-		macro.Add("_SCI").Add("(").Id().Pull().Rstsrc()
-		if (isEdge & 0x1) == 0 {
-			macro.Trig()
-		}
-		macro.Invert()
-
-	case dw0.GetGPIOInputRouteSMI():
-		if (isEdge & 0x1) != 0 {
-			// e.g. PAD_CFG_GPI_ACPI_SMI(GPP_I3, NONE, DEEP, YES),
-			macro.Add("_ACPI")
-		}
-		macro.Add("_SMI").Add("(").Id().Pull().Rstsrc()
-		if (isEdge & 0x1) == 0 {
-			// e.g. PAD_CFG_GPI_SMI(GPP_E7, NONE, DEEP, LEVEL, NONE),
-			macro.Trig()
-		}
-		macro.Invert()
-
-	case isEdge != 0 || macro.IsOwnershipDriver():
-		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
-		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own()
-
-	default:
-		if macro.IsOwnershipDriver() {
-			// e. g. PAD_CFG_GPI_GPIO_DRIVER(GPIO_212, UP_20K, DEEP),
-			macro.Add("_GPIO_DRIVER")
-		}
-		// e.g. PAD_CFG_GPI(GPP_A7, NONE, DEEP),
-		macro.Add("(").Id().Pull().Rstsrc()
 	}
-	macro.Add("),")
+
+	if argc := len(ids); argc == 0 {
+		// e.g. PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
+		macro.Add("_TRIG_OWN").Add("(").Id().Pull().Rstsrc().Trig().Own().Add("),")
+	} else if argc == 2 {
+		// PAD_CFG_GPI_DUAL_ROUTE(pad, pull, rst, trig, inv, route1, route2)
+		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig()
+		macro.Add(", " + ids[0] + ", " + ids[1] + "),")
+	} else if argc > 2 {
+		// Clear the control mask so that the check fails and "Advanced" macro is
+		// generated
+		macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(common.AllFields)
+	}
 }
 
 // Adds PAD_CFG_GPO macro with arguments
 func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
+	dw0 := macro.Register(PAD_CFG_DW0)
 	term := macro.Register(PAD_CFG_DW1).GetTermination()
-	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
+
+	// #define PAD_CFG_GPO(pad, val, rst)                \
+	//    _PAD_CFG_STRUCT(pad,                           \
+	//      PAD_FUNC(GPIO) | PAD_RESET(rst) |            \
+	//      PAD_TRIG(OFF) | PAD_BUF(RX_DISABLE) | !!val, \
+	//      PAD_PULL(NONE) | PAD_IOSSTATE(TxLASTRxE))
+	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
+		dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
+	}
+	macro.Set("PAD_CFG")
+	if macro.IsOwnershipDriver() {
+		// PAD_CFG_GPO_GPIO_DRIVER(pad, val, rst, pull)
+		macro.Add("_GPO_GPIO_DRIVER").Add("(").Id().Val().Rstsrc().Pull().Add("),")
+		return
+	}
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.Add("_TERM")
@@ -162,73 +226,32 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 		macro.Pull()
 	}
 	macro.Rstsrc().Add("),")
-
-	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
-	// See https://github.com/coreboot/coreboot/commit/3820e3c
-	macro.Register(PAD_CFG_DW0).MaskTrigFix()
 }
 
 // Adds PAD_CFG_NF macro with arguments
 func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
-	dw0 := macro.Register(PAD_CFG_DW0)
-	isEdge := dw0.GetRXLevelEdgeConfiguration() != 0
-	isTxRxBufDis := dw0.GetGPIORxTxDisableStatus() != 0
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
-	macro.Add("_NF")
-	if isEdge || isTxRxBufDis {
-		// e.g. PCHHOT#
-		// PAD_CFG_NF_BUF_TRIG(GPP_B23, 20K_PD, PLTRST, NF2, RX_DIS, OFF),
-		macro.Add("_BUF_TRIG")
-	}
-	macro.Add("(").Id().Pull().Rstsrc().Padfn()
-	if isEdge || isTxRxBufDis {
-		macro.Bufdis().Trig()
-	}
-	macro.Add("),")
+	macro.Set("PAD_CFG_NF").Add("(").Id().Pull().Rstsrc().Padfn().Add("),")
 }
 
 // Adds PAD_NC macro
 func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
-	// PAD_NC(OSC_CLK_OUT_1, DN_20K)
+	// #define PAD_NC(pad, pull)
+	// _PAD_CFG_STRUCT(pad,
+	//     PAD_FUNC(GPIO) | PAD_RESET(DEEP) | PAD_TRIG(OFF) | PAD_BUF(TX_RX_DISABLE),
+	//     PAD_PULL(pull) | PAD_IOSSTATE(TxDRxE)),
+	dw0 := macro.Register(PAD_CFG_DW0)
+
+	// Some fields of the configuration registers are hidden inside the macros,
+	// we should check them to update the corresponding bits in the control mask.
+	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
+		dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
+	}
+	if dw0.GetResetConfig() != 1 { // 1 = RST_DEEP
+		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
+	}
+
 	macro.Set("PAD_NC").Add("(").Id().Pull().Add("),")
-}
-
-// Generates "Advanced" macro if the standard ones can't define the values from
-// the DW0/1 register
-func (PlatformSpecific) AdvancedMacroGenerate(macro *common.Macro) {
-	macro.Set("_PAD_CFG_STRUCT(").Id().Add(",\n\t\tPAD_FUNC(").Padfn().
-		Add(") | PAD_RESET(").Rstsrc().Add(") |\n\t\t")
-
-	var str string
-	var argument = true
-
-	switch dw0 := macro.Register(PAD_CFG_DW0); {
-	case dw0.GetGPIOInputRouteIOxAPIC():
-		str = "IOAPIC"
-	case dw0.GetGPIOInputRouteSCI():
-		str = "SCI"
-	case dw0.GetGPIOInputRouteSMI():
-		str = "SMI"
-	case dw0.GetGPIOInputRouteNMI():
-		str = "NMI"
-	default:
-		argument = false
-	}
-
-	if argument {
-		macro.Add("PAD_IRQ_CFG(").Add(str).Trig().Invert().Add(")")
-	} else {
-		macro.Add("PAD_CFG0_TRIG_").Trig().Add(" | PAD_CFG0_RX_POL_").Invert()
-	}
-
-	macro.Add(" |\n\t\t").Add("PAD_BUF(").Bufdis().Add(")")
-	if macro.Register(PAD_CFG_DW0).GetGPIOTXState() != 0 {
-		macro.Add(" | 1")
-	}
-	macro.Add(",\n\t\tPAD_CFG_OWN_GPIO(").Own().Add(") | ").Add("PAD_PULL(").Pull().Add(")),")
-
-	fmt.Printf("\nNo configuration for pad: %s\n", macro.PadIdGet())
-	fmt.Printf("Use %s\n", macro.Get())
 }
 
 // GenMacro - generate pad macro

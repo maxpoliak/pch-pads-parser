@@ -48,3 +48,35 @@ func RawFormatFlagSet(flag bool) {
 func IsRawFormatUsed() bool {
 	return useRawFormat
 }
+
+var useAdvancedFormat bool = false
+func AdvancedFormatFlagSet(flag bool) {
+	useAdvancedFormat = flag
+}
+func IsAdvancedFormatUsed() bool {
+	return useAdvancedFormat
+}
+
+var ignoredFieldsFormat bool = false
+func IgnoredFieldsFlagSet(flag bool) {
+	ignoredFieldsFormat = flag
+}
+func AreFieldsIgnored() bool {
+	return ignoredFieldsFormat
+}
+
+var nonCheckingFlag bool = false
+func NonCheckingFlagSet(flag bool) {
+	nonCheckingFlag = flag
+}
+func IsNonCheckingFlagUsed() bool {
+	return nonCheckingFlag
+}
+
+var infolevel uint8 = 0
+func InfoLevelSet(lvl uint8) {
+	infolevel = lvl
+}
+func InfoLevelGet() uint8 {
+	return infolevel
+}
