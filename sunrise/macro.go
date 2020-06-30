@@ -200,10 +200,23 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 
 // Adds PAD_CFG_GPO macro with arguments
 func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
+	dw0 := macro.Register(PAD_CFG_DW0)
 	term := macro.Register(PAD_CFG_DW1).GetTermination()
 
+	// #define PAD_CFG_GPO(pad, val, rst)                \
+	//    _PAD_CFG_STRUCT(pad,                           \
+	//      PAD_FUNC(GPIO) | PAD_RESET(rst) |            \
+	//      PAD_TRIG(OFF) | PAD_BUF(RX_DISABLE) | !!val, \
+	//      PAD_PULL(NONE) | PAD_IOSSTATE(TxLASTRxE))
+	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
+		dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
+	}
 	macro.Set("PAD_CFG")
-	// FIXME: don`t understand how to get PAD_CFG_GPI_GPIO_DRIVER(..)
+	if macro.IsOwnershipDriver() {
+		// PAD_CFG_GPO_GPIO_DRIVER(pad, val, rst, pull)
+		macro.Add("_GPO_GPIO_DRIVER").Add("(").Id().Val().Rstsrc().Pull().Add("),")
+		return
+	}
 	if term != 0 {
 		// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
 		macro.Add("_TERM")
@@ -213,10 +226,6 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 		macro.Pull()
 	}
 	macro.Rstsrc().Add("),")
-
-	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
-	// See https://github.com/coreboot/coreboot/commit/3820e3c
-	macro.Register(PAD_CFG_DW0).MaskTrigFix()
 }
 
 // Adds PAD_CFG_NF macro with arguments
