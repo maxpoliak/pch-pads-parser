@@ -5,6 +5,7 @@ import "strconv"
 
 // Local packages
 import "../common"
+import "../config"
 
 const (
 	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe
@@ -169,7 +170,8 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 		}
 	}
 
-	if argc := len(ids); argc == 0 {
+	switch argc := len(ids); argc {
+	case 0:
 		dw1 := macro.Register(PAD_CFG_DW1)
 		isIOStandbyStateUsed := dw1.GetIOStandbyState() != 0
 		isIOStandbyTerminationUsed := dw1.GetIOStandbyTermination() != 0
@@ -185,11 +187,19 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 			// PAD_CFG_GPI_TRIG_OWN(pad, pull, rst, trig, own)
 			macro.Add("_TRIG_OWN(").Id().Pull().Rstsrc().Trig().Own().Add("),")
 		}
-	} else if argc == 2 {
+	case 1:
+		// GPI with IRQ route
+		if config.AreFieldsIgnored() {
+			macro.SetPadOwnership(common.PAD_OWN_ACPI)
+		}
+	case 2:
 		// PAD_CFG_GPI_DUAL_ROUTE(pad, pull, rst, trig, inv, route1, route2)
 		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig()
 		macro.Add(", " + ids[0] + ", " + ids[1] + "),")
-	} else if argc > 2 {
+		if config.AreFieldsIgnored() {
+			macro.SetPadOwnership(common.PAD_OWN_ACPI)
+		}
+	default:
 		// Clear the control mask so that the check fails and "Advanced" macro is
 		// generated
 		macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(common.AllFields)
