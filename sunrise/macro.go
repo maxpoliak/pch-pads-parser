@@ -109,7 +109,7 @@ func ioApicRoute(macro *common.Macro) bool {
 			macro.Add("_INVERT")
 		}
 		// PAD_CFG_GPI_APIC(pad, pull, rst)
-		macro.Id().Add("(").Pull().Rstsrc().Add("),")
+		macro.Add("(").Id().Pull().Rstsrc().Add("),")
 		return true
 	}
 
