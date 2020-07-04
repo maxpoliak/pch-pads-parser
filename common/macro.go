@@ -260,36 +260,21 @@ func (macro *Macro) dw0Decode() *Macro {
 	dw0 := macro.Register(PAD_CFG_DW0)
 
 	irqroute := func(macro *Macro, name string) {
-		for key, isRoute := range map[string]func()uint8{
-			"IOAPIC": dw0.GetGPIOInputRouteIOxAPIC,
-			"SCI":    dw0.GetGPIOInputRouteSCI,
-			"SMI":    dw0.GetGPIOInputRouteSMI,
-			"NMI":    dw0.GetGPIOInputRouteNMI,
-		} {
-			if name == key && isRoute() != 0 {
-				macro.or().Add("PAD_IRQ_ROUTE(").Add(name).Add(")")
-			}
-		}
+		macro.or().Add("PAD_IRQ_ROUTE(").Add(name).Add(")")
 	}
 
 	somebits := func(macro *Macro, name string) {
-		for key, isRoute := range map[string]func()uint8{
-			"(1 << 29)": dw0.GetRXPadStateSelect,
-			"(1 << 28)": dw0.GetRXRawOverrideStatus,
-			"1":         dw0.GetGPIOTXState,
-		} {
-			if name == key && isRoute() != 0 {
-				macro.or().Add(name)
-			}
-		}
+		macro.or().Add(name)
 	}
 
-	for _, slice := range []struct {
-        name   string
-        action func(macro *Macro, name string)
+	for _, field := range []struct {
+		name   string
+		getvalue func() uint8
+		generate func(macro *Macro, name string)
 	} {
 		{	// PAD_FUNC(NF3)
 			"PAD_FUNC",
+			func() uint8 { return 1 },
 			func(macro *Macro, name string) {
 				if dw0.GetPadMode() != 0 || config.InfoLevelGet() <= 3 {
 					macro.or().Add(name).Add("(").Padfn().Add(")")
@@ -299,10 +284,11 @@ func (macro *Macro) dw0Decode() *Macro {
 
 		{	// PAD_RESET(DEEP)
 			"PAD_RESET",
+			dw0.GetResetConfig,
 			func(macro *Macro, name string) {
 				if dw0.GetResetConfig() == 0x3 {
 					macro.or().Add("(3 << 30)")
-				} else if dw0.GetResetConfig() != 0 {
+				} else {
 					macro.or().Add(name).Add("(").Rstsrc().Add(")")
 				}
 			},
@@ -310,67 +296,73 @@ func (macro *Macro) dw0Decode() *Macro {
 
 		{	// PAD_TRIG(OFF)
 			"PAD_TRIG",
+			dw0.GetRXLevelEdgeConfiguration,
 			func(macro *Macro, name string) {
-				if dw0.GetRXLevelEdgeConfiguration() != 0 {
 					macro.or().Add(name).Add("(").Trig().Add(")")
-				}
 			},
 		},
 
 		{	// PAD_IRQ_ROUTE(IOAPIC)
 			"IOAPIC",
+			dw0.GetGPIOInputRouteIOxAPIC,
 			irqroute,
 		},
 
 		{	// PAD_IRQ_ROUTE(SCI)
 			"SCI",
+			dw0.GetGPIOInputRouteSCI,
 			irqroute,
 		},
 
 		{	// PAD_IRQ_ROUTE(SMI)
 			"SMI",
+			dw0.GetGPIOInputRouteSMI,
 			irqroute,
 		},
 
 		{	// PAD_IRQ_ROUTE(NMI)
 			"NMI",
+			dw0.GetGPIOInputRouteNMI,
 			irqroute,
 		},
 
 		{	// PAD_RX_POL(EDGE_SINGLE)
 			"PAD_RX_POL",
+			dw0.GetRxInvert,
 			func(macro *Macro, name string) {
-				if dw0.GetRxInvert() != 0 {
 					macro.or().Add(name).Add("(").Invert().Add(")")
-				}
 			},
 		},
 
 		{	// PAD_BUF(TX_RX_DISABLE)
 			"PAD_BUF",
+			dw0.GetGPIORxTxDisableStatus,
 			func(macro *Macro, name string) {
-				if dw0.GetGPIORxTxDisableStatus() != 0 {
 					macro.or().Add(name).Add("(").Bufdis().Add(")")
-				}
 			},
 		},
 
 		{	// (1 << 29)
 			"(1 << 29)",
+			dw0.GetRXPadStateSelect,
 			somebits,
 		},
 
 		{	// (1 << 28)
 			"(1 << 28)",
+			dw0.GetRXRawOverrideStatus,
 			somebits,
 		},
 
 		{	// 1
 			"1",
+			dw0.GetGPIOTXState,
 			somebits,
 		},
 	} {
-		slice.action(macro, slice.name)
+		if field.getvalue() != 0 {
+			field.generate(macro, field.name)
+		}
 	}
 	return macro
 }
@@ -378,51 +370,50 @@ func (macro *Macro) dw0Decode() *Macro {
 // dw1Decode - decode value of DW1 register
 func (macro *Macro) dw1Decode() *Macro {
 	dw1 := macro.Register(PAD_CFG_DW1)
-	for _, slice := range []struct {
-        name   string
-        action func(macro *Macro, name string)
+	for _, field := range []struct {
+		name   string
+		getvalue func() uint8
+		generate func(macro *Macro, name string)
 	} {
 		// PAD_PULL(DN_20K)
 		{
 			"PAD_PULL",
+			dw1.GetTermination,
 			func(macro *Macro, name string) {
-				if dw1.GetTermination() != 0 {
 					macro.or().Add(name).Add("(").Pull().Add(")")
-				}
 			},
 		},
 
 		// PAD_IOSSTATE(HIZCRx0)
 		{
 			"PAD_IOSSTATE",
+			dw1.GetIOStandbyState,
 			func(macro *Macro, name string) {
-				if dw1.GetIOStandbyState() != 0 {
 					macro.or().Add(name).Add("(").IOSstate().Add(")")
-				}
 			},
 		},
 
 		// PAD_IOSTERM(ENPU)
 		{
 			"PAD_IOSTERM",
+			dw1.GetIOStandbyTermination,
 			func(macro *Macro, name string)  {
-				if dw1.GetIOStandbyTermination() != 0 {
 					macro.or().Add(name).Add("(").IOTerm().Add(")")
-				}
 			},
 		},
 
 		// PAD_CFG_OWN_GPIO(DRIVER)
 		{
 			"PAD_CFG_OWN_GPIO",
+			func() uint8 { return macro.ownership },
 			func(macro *Macro, name string)  {
-				if macro.IsOwnershipDriver() {
 					macro.or().Add(name).Add("(").Own().Add(")")
-				}
 			},
 		},
 	} {
-		slice.action(macro, slice.name)
+		if field.getvalue() != 0 {
+			field.generate(macro, field.name)
+		}
 	}
 	return macro
 }
