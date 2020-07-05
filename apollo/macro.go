@@ -221,12 +221,14 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 	} else {
 		if term != 0 {
 			// e.g. PAD_CFG_TERM_GPO(GPP_B23, 1, DN_20K, DEEP),
+			// PAD_CFG_TERM_GPO(pad, val, pull, rst)
 			macro.Add("_TERM")
 		}
 		macro.Add("_GPO(").Id().Val()
 		if term != 0 {
 			macro.Pull()
 		}
+		macro.Rstsrc()
 	}
 	macro.Add("),")
 	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
