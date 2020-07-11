@@ -42,7 +42,7 @@ func (info *padInfo) titleFprint() {
 // reservedFprint - print reserved GPIO to file as comment
 func (info *padInfo) reservedFprint() {
 	// small comment about reserved port
-	fmt.Fprintf(config.OutputGenFile, "\t/* %s - %s */\n", info.id, info.function)
+	fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s */\n", info.id, info.function)
 }
 
 // padInfoRawFprint - print information about current pad to file using
@@ -92,17 +92,16 @@ type ParserData struct {
 	line       string
 	padmap     []padInfo
 	ownership  map[string]uint32
-	Template   int
 }
 
 // hostOwnershipGet - get the host software ownership value for the corresponding
 // pad ID
-// id : pad ID stirng
+// id : pad ID string
 // return the host software ownership form the parser struct
 func (parser *ParserData) hostOwnershipGet(id string) uint8 {
 	var ownership uint8 = 0
 	status, group := parser.platform.GroupNameExtract(id)
-	if parser.Template == 0 && status {
+	if config.TemplateGet() == config.TempInteltool && status {
 		numder, _ := strconv.Atoi(strings.TrimLeft(id, group))
 		if (parser.ownership[group] & (1 << uint8(numder))) != 0 {
 			ownership = 1
@@ -117,25 +116,21 @@ func (parser *ParserData) padInfoExtract() int {
 	var function, id string
 	var dw0, dw1 uint32
 	var template = map[int]template{
-		0: useInteltoolLogTemplate, // inteltool.log
-		1: useGpioHTemplate,        // gpio.h
-		2: useYourTemplate,         // your file
+		config.TempInteltool: useInteltoolLogTemplate,
+		config.TempGpioh    : useGpioHTemplate,
+		config.TempSpec     : useYourTemplate,
 	}
-	if applyTemplate, valid := template[parser.Template]; valid {
-		if applyTemplate(parser.line, &function, &id, &dw0, &dw1) == 0 {
-			pad := padInfo{id: id,
-					function: function,
-					dw0: dw0,
-					dw1: dw1,
-					ownership: parser.hostOwnershipGet(id)}
-			parser.padmap = append(parser.padmap, pad)
-			return 0
-		}
-		fmt.Printf("This template (index %d) does not match"+
-			" the entry in the configuration file!\n", parser.Template)
-		return -1
+	if template[config.TemplateGet()](parser.line, &function, &id, &dw0, &dw1) == 0 {
+		pad := padInfo{id: id,
+			function: function,
+			dw0: dw0,
+			dw1: dw1,
+			ownership: parser.hostOwnershipGet(id)}
+		parser.padmap = append(parser.padmap, pad)
+		return 0
 	}
-	fmt.Printf("There is no template for this type index %d\n", parser.Template)
+	fmt.Printf("This template (%d) does not match for %s pad!\n",
+			config.TemplateGet(), id)
 	return -1
 }
 
@@ -185,7 +180,8 @@ func (parser *ParserData) PadMapFprint() {
 //     value  : register value
 func (parser *ParserData) Register(nameTemplate string) (
 		valid bool, name string, offset uint32, value uint32) {
-	if strings.Contains(parser.line, nameTemplate) && parser.Template == 0 {
+	if strings.Contains(parser.line, nameTemplate) &&
+		config.TemplateGet() == config.TempInteltool {
 		if registerInfoTemplate(parser.line, &name, &offset, &value) == 0 {
 			fmt.Printf("\n\t/* %s : 0x%x : 0x%x */\n", name, offset, value)
 			return true, name, offset, value
@@ -212,7 +208,7 @@ func (parser *ParserData) padOwnershipExtract() bool {
 //                           information from the inteltool log was successfully parsed.
 func (parser *ParserData) padConfigurationExtract() bool {
 	// Only for Sunrise PCH and only for inteltool.log file template
-	if parser.Template != 0 || config.IsPlatformApollo() {
+	if config.TemplateGet() != config.TempInteltool || config.IsPlatformApollo() {
 		return false
 	}
 	return parser.padOwnershipExtract()
