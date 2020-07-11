@@ -25,6 +25,18 @@ type PlatformSpecific struct {}
 // Adds the PADRSTCFG parameter from PAD_CFG_DW0 to the macro as a new argument
 func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	dw0 := macro.Register(PAD_CFG_DW0)
+	var resetsrc = map[uint8]string{
+		0: "PWROK",
+		1: "DEEP",
+		2: "PLTRST",
+		3: "RSMRST",
+	}
+
+	if config.TemplateGet() != config.TempInteltool {
+		// Use reset source remapping only if the input file is inteltool.log dump
+		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
+		return
+	}
 
 	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
 		// See reset map for the GPD Group in the Community 2:
@@ -35,12 +47,6 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 		// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30},
 		// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 3U << 30},
 		// };
-		var resetsrc = map[uint8]string{
-			0: "PWROK",
-			1: "DEEP",
-			2: "PLTRST",
-			3: "RSMRST",
-		}
 		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 		return
 	}
@@ -62,9 +68,8 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 	}
 	str, valid := remapping[dw0.GetResetConfig()]
 	if !valid {
-		// from intel doc: 3h = Reserved (implement as setting 0h)
+		str = "RESERVED" // from intel doc: 3h = Reserved
 		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
-		str = "RSMRST"
 	}
 	macro.Separator().Add(str)
 }

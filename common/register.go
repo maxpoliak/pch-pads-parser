@@ -124,20 +124,6 @@ func (reg *Register) IgnoredFieldsGet() uint32 {
 	return reg.value & ^mask
 }
 
-// Fix Pad Reset Config field in mask for DW0 register
-// Returns *Register
-func (reg *Register) MaskResetFix() *Register {
-	reg.mask |= PadRstCfgMask
-	return reg
-}
-
-// Fix RX Level/Edge Configuration field in mask for DW0 register
-// Returns *Register
-func (reg *Register) MaskTrigFix() *Register {
-	reg.mask |= RxLevelEdgeConfigurationMask
-	return reg
-}
-
 // getResetConfig - returns type reset source for corresponding pad
 // PADRSTCFG field in PAD_CFG_DW0 register
 func (reg *Register) GetResetConfig() uint8 {
