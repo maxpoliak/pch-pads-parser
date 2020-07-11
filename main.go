@@ -146,7 +146,12 @@ func main() {
 	config.OutputGenFile = outputGenFile
 	config.InputRegDumpFile = inputRegDumpFile
 
-	parser := parser.ParserData{Template: *template}
+	if !config.TemplateSet(*template) {
+		fmt.Printf("Error! Unknown template format of input file!\n")
+		os.Exit(1)
+	}
+
+	parser := parser.ParserData{}
 	parser.Parse()
 
 	// gpio.h
