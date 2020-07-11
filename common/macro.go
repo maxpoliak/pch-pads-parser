@@ -274,11 +274,14 @@ func (macro *Macro) dw0Decode() *Macro {
 	} {
 		{	// PAD_FUNC(NF3)
 			"PAD_FUNC",
-			func() uint8 { return 1 },
-			func(macro *Macro, name string) {
+			func() uint8 {
 				if dw0.GetPadMode() != 0 || config.InfoLevelGet() <= 3 {
-					macro.or().Add(name).Add("(").Padfn().Add(")")
+					return 1
 				}
+				return 0
+			},
+			func(macro *Macro, name string) {
+				macro.or().Add(name).Add("(").Padfn().Add(")")
 			},
 		},
 
@@ -286,7 +289,7 @@ func (macro *Macro) dw0Decode() *Macro {
 			"PAD_RESET",
 			dw0.GetResetConfig,
 			func(macro *Macro, name string) {
-					macro.or().Add(name).Add("(").Rstsrc().Add(")")
+				macro.or().Add(name).Add("(").Rstsrc().Add(")")
 			},
 		},
 
@@ -294,7 +297,7 @@ func (macro *Macro) dw0Decode() *Macro {
 			"PAD_TRIG",
 			dw0.GetRXLevelEdgeConfiguration,
 			func(macro *Macro, name string) {
-					macro.or().Add(name).Add("(").Trig().Add(")")
+				macro.or().Add(name).Add("(").Trig().Add(")")
 			},
 		},
 
@@ -326,7 +329,7 @@ func (macro *Macro) dw0Decode() *Macro {
 			"PAD_RX_POL",
 			dw0.GetRxInvert,
 			func(macro *Macro, name string) {
-					macro.or().Add(name).Add("(").Invert().Add(")")
+				macro.or().Add(name).Add("(").Invert().Add(")")
 			},
 		},
 
@@ -334,7 +337,7 @@ func (macro *Macro) dw0Decode() *Macro {
 			"PAD_BUF",
 			dw0.GetGPIORxTxDisableStatus,
 			func(macro *Macro, name string) {
-					macro.or().Add(name).Add("(").Bufdis().Add(")")
+				macro.or().Add(name).Add("(").Bufdis().Add(")")
 			},
 		},
 
@@ -376,7 +379,7 @@ func (macro *Macro) dw1Decode() *Macro {
 			"PAD_PULL",
 			dw1.GetTermination,
 			func(macro *Macro, name string) {
-					macro.or().Add(name).Add("(").Pull().Add(")")
+				macro.or().Add(name).Add("(").Pull().Add(")")
 			},
 		},
 
@@ -385,7 +388,7 @@ func (macro *Macro) dw1Decode() *Macro {
 			"PAD_IOSSTATE",
 			dw1.GetIOStandbyState,
 			func(macro *Macro, name string) {
-					macro.or().Add(name).Add("(").IOSstate().Add(")")
+				macro.or().Add(name).Add("(").IOSstate().Add(")")
 			},
 		},
 
@@ -394,7 +397,7 @@ func (macro *Macro) dw1Decode() *Macro {
 			"PAD_IOSTERM",
 			dw1.GetIOStandbyTermination,
 			func(macro *Macro, name string)  {
-					macro.or().Add(name).Add("(").IOTerm().Add(")")
+				macro.or().Add(name).Add("(").IOTerm().Add(")")
 			},
 		},
 
@@ -403,7 +406,7 @@ func (macro *Macro) dw1Decode() *Macro {
 			"PAD_CFG_OWN_GPIO",
 			func() uint8 { return macro.ownership },
 			func(macro *Macro, name string)  {
-					macro.or().Add(name).Add("(").Own().Add(")")
+				macro.or().Add(name).Add("(").Own().Add(")")
 			},
 		},
 	} {
