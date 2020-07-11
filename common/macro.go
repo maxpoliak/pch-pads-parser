@@ -286,11 +286,7 @@ func (macro *Macro) dw0Decode() *Macro {
 			"PAD_RESET",
 			dw0.GetResetConfig,
 			func(macro *Macro, name string) {
-				if dw0.GetResetConfig() == 0x3 {
-					macro.or().Add("(3 << 30)")
-				} else {
 					macro.or().Add(name).Add("(").Rstsrc().Add(")")
-				}
 			},
 		},
 
