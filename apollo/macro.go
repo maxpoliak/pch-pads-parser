@@ -231,9 +231,11 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 		macro.Rstsrc()
 	}
 	macro.Add("),")
-	// Fix mask for RX Level/Edge Configuration (RXEVCFG)
-	// See https://github.com/coreboot/coreboot/commit/3820e3c
-	dw0.MaskTrigFix()
+
+	if dw0.GetRXLevelEdgeConfiguration() != common.TRIG_OFF {
+		// ignore if trig = OFF is not set
+		dw0.CntrMaskFieldsClear(common.RxLevelEdgeConfigurationMask)
+	}
 }
 
 // Adds PAD_CFG_NF macro with arguments
