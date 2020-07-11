@@ -2,7 +2,27 @@ package config
 
 import "os"
 
-// platform type constants
+const (
+	TempInteltool  int  = 0
+	TempGpioh      int  = 1
+	TempSpec       int  = 2
+)
+
+var template int = 0
+
+func TemplateSet(temp int) bool {
+	if template > TempSpec {
+		return false
+	} else {
+		template = temp
+		return true
+	}
+}
+
+func TemplateGet() int {
+	return template
+}
+
 const (
 	SunriseType   uint8  = 0
 	LewisburgType uint8  = 1
