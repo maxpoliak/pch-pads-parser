@@ -194,7 +194,7 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 		}
 	case 2:
 		// PAD_CFG_GPI_DUAL_ROUTE(pad, pull, rst, trig, inv, route1, route2)
-		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig()
+		macro.Set("PAD_CFG_GPI_DUAL_ROUTE(").Id().Pull().Rstsrc().Trig().Invert()
 		macro.Add(", " + ids[0] + ", " + ids[1] + "),")
 		if config.AreFieldsIgnored() {
 			macro.SetPadOwnership(common.PAD_OWN_ACPI)
