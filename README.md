@@ -61,9 +61,7 @@ Use the -adv option to only generate advanced macros:
 ```
 
 ```c
-_PAD_CFG_STRUCT(GPIO_37,
-    PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF),
-    PAD_PULL(DN_20K)),
+_PAD_CFG_STRUCT(GPIO_37, PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF), PAD_PULL(DN_20K)), /* LPSS_UART0_TXD */
 ```
 ### Macro Check
 
@@ -79,19 +77,21 @@ macros, use the -n option:
 In this case, some fields of the configuration registers
 DW0 will be ignored.
 
+```c
+PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_38, UP_20K, DEEP, NF1, HIZCRx1, DISPUPD),		/* LPSS_UART0_RXD */
+PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),	/* LPSS_UART0_TXD */
+```
+
 ### Information level
 
 The utility can generate additional information about the bit
 fields of the DW0 and DW1 configuration registers:
 
 ```c
-/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */ --> (1)
-/* PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD), */ --> (2)
-/* (!) NEED TO IGNORE THESE FIELDS: DW0(0x04000000) */ --> (3)
-/* (!) DW0 : PAD_TRIG(OFF) - IGNORED */ --> (4)
-_PAD_CFG_STRUCT(GPIO_39,
-    PAD_FUNC(NF1) | PAD_RESET(DEEP) | PAD_TRIG(OFF),
-    PAD_PULL(UP_20K) | PAD_IOSTERM(DISPUPD)),
+/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */ --> (2)
+/* PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD), */ --> (3)
+/* DW0 : PAD_TRIG(OFF) - IGNORED */ --> (4)
+_PAD_CFG_STRUCT(GPIO_39, PAD_FUNC(NF1) | PAD_RESET(DEEP) | PAD_TRIG(OFF), PAD_PULL(UP_20K) | PAD_IOSTERM(DISPUPD)),
 ```
 
 Using the options -i, -ii, -iii, -iiii you can set the info level
@@ -103,21 +103,18 @@ from (1) to (4):
 (shell)$./intelp2m -iii -file /path/to/inteltool.log
 (shell)$./intelp2m -iiii -file /path/to/inteltool.log
 ```
+(1) : print /* GPIO_39 - LPSS_UART0_TXD */
 
-(1) : print initial raw values of configuration registers from
+(2) : print initial raw values of configuration registers from
 inteltool dump
 DW0: 0x44000400, DW1: 0x00003100
 
-(2) : print the target macro that will generate if you use the
+(3) : print the target macro that will generate if you use the
 -n option
 PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
 
-(3) : print fields to be ignored if the advanced macro is
-converted to the target macro from (2)
-(!) NEED TO IGNORE THESE FIELDS: DW0(0x04000000)
-
 (4) : print decoded fields from (3) as macros
-(!) DW0 : PAD_TRIG(OFF) - IGNORED
+DW0 : PAD_TRIG(OFF) - IGNORED
 
 ### Ignoring Fields
 
@@ -130,13 +127,10 @@ macro:
 ```
 
 ```c
-/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */
+/* GPIO_39 - LPSS_UART0_TXD DW0: 0x44000400, DW1: 0x00003100 */
 /* PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD), */
-/* (!) NEED TO IGNORE THESE FIELDS: DW0(0x04000000) */
-/* (!) DW0 : PAD_TRIG(OFF) - IGNORED */
-_PAD_CFG_STRUCT(GPIO_39,
-    PAD_FUNC(NF1) | PAD_RESET(DEEP),
-    PAD_PULL(UP_20K) | PAD_IOSTERM(DISPUPD)),
+/* DW0 : PAD_TRIG(OFF) - IGNORED */
+_PAD_CFG_STRUCT(GPIO_39, PAD_FUNC(NF1) | PAD_RESET(DEEP), PAD_PULL(UP_20K) | PAD_IOSTERM(DISPUPD)),
 ```
 
 If you generate macros without checking, you can see bit fields that
@@ -147,10 +141,9 @@ were ignored:
 ```
 
 ```c
-/* GPIO_39 - LPSS_UART0_TXD (DW0: 0x44000400, DW1: 0x00003100) */
+/* GPIO_39 - LPSS_UART0_TXD DW0: 0x44000400, DW1: 0x00003100 */
 PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
-/* (!) THESE FIELDS WERE IGNORED: DW0(0x04000000) */
-/* (!) DW0 : PAD_TRIG(OFF) - IGNORED */
+/* DW0 : PAD_TRIG(OFF) - IGNORED */
 ```
 
 ```bash

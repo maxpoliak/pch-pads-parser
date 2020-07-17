@@ -34,49 +34,52 @@ type padInfo struct {
 	ownership uint8
 }
 
+// generate - wrapper for Fprintf(). Writes text to the file specified
+// in config.OutputGenFile
+func (info *padInfo) generate(lvl uint8, line string, a ...interface{}) {
+	if config.InfoLevelGet() >= lvl {
+		fmt.Fprintf(config.OutputGenFile, line, a...)
+	}
+}
+
 // titleFprint - print GPIO group title to file
+// /* ------- GPIO Group GPP_L ------- */
 func (info *padInfo) titleFprint() {
-	fmt.Fprintf(config.OutputGenFile, "\n\t/* %s */\n", info.function)
+	info.generate(0, "\n\t/* %s */\n", info.function)
 }
 
 // reservedFprint - print reserved GPIO to file as comment
+// /* GPP_H17 - RESERVED */
 func (info *padInfo) reservedFprint() {
+	info.generate(2, "\n")
 	// small comment about reserved port
-	fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s */\n", info.id, info.function)
+	info.generate(0, "\t/* %s - %s */\n", info.id, info.function)
 }
 
 // padInfoRawFprint - print information about current pad to file using
 // raw format:
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
 func (info *padInfo) padInfoRawFprint() {
-	if info.ownership == 1 {
-		info.dw1 |= 1 << 4
-	}
-	fmt.Fprintf(config.OutputGenFile, "\t/* %s - %s */\n", info.id, info.function)
-	fmt.Fprintf(config.OutputGenFile,
-		"\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x),\n", info.id, info.dw0, info.dw1)
+	if info.ownership == 1 { info.dw1 |= 0x00000010 }
+	info.generate(0, "\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x),\t/* %s */\n",
+		info.id, info.dw0, info.dw1, info.function)
 }
 
 // padInfoMacroFprint - print information about current pad to file using
 // special macros:
-// /* GPP_F1 - SATAXPCIE4 */
-// PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1),
+// PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1), /* SATAXPCIE4 */
 // gpio  : gpio.c file descriptor
 // macro : string of the generated macro
 func (info *padInfo) padInfoMacroFprint(macro string) {
-	if len(info.function) > 0 {
-		fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s ",
-				info.id,
-				info.function)
-		if config.InfoLevelGet() >= 1 {
-			fmt.Fprintf(config.OutputGenFile, "(DW0: 0x%0.8x, DW1: 0x%0.8x) */\n",
-				info.dw0,
-				info.dw1)
-		} else {
-			fmt.Fprintf(config.OutputGenFile, "*/\n");
-		}
+	info.generate(2, "\n")
+	info.generate(1, "\t/* %s - %s ", info.id, info.function)
+	info.generate(2, "DW0: 0x%0.8x, DW1: 0x%0.8x ", info.dw0, info.dw1)
+	info.generate(1, "*/\n")
+	info.generate(0, "\t%s", macro)
+	if config.InfoLevelGet() == 0 {
+		info.generate(0, "\t/* %s */", info.function)
 	}
-	fmt.Fprintf(config.OutputGenFile, "\t%s\n", macro)
+	info.generate(0, "\n")
 }
 
 // ParserData - global data
@@ -126,8 +129,7 @@ func (parser *ParserData) padInfoExtract() int {
 		parser.padmap = append(parser.padmap, pad)
 		return 0
 	}
-	fmt.Printf("This template (%d) does not match for %s pad!\n",
-			config.TemplateGet(), id)
+	fmt.Printf("This template (%d) does not match!\n", config.TemplateGet())
 	return -1
 }
 
