@@ -56,6 +56,8 @@ func useInteltoolLogTemplate(line string, function *string,
 		for i := 4; i < len(fields); i++ {
 			*function += "/" + fields[i]
 		}
+		// clear RO Interrupt Select (INTSEL)
+		*dw1 &= 0xffffff00
 	}
 	return 0
 }

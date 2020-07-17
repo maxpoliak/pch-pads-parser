@@ -49,7 +49,6 @@ func (info *padInfo) reservedFprint() {
 // raw format:
 // _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
 func (info *padInfo) padInfoRawFprint() {
-	info.dw1 &= 0xffffff00
 	if info.ownership == 1 {
 		info.dw1 |= 1 << 4
 	}
@@ -65,9 +64,7 @@ func (info *padInfo) padInfoRawFprint() {
 // gpio  : gpio.c file descriptor
 // macro : string of the generated macro
 func (info *padInfo) padInfoMacroFprint(macro string) {
-	info.dw1 &= 0xffffff00
 	if len(info.function) > 0 {
-
 		fmt.Fprintf(config.OutputGenFile, "\n\t/* %s - %s ",
 				info.id,
 				info.function)
