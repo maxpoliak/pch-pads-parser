@@ -112,6 +112,11 @@ func main() {
 		config.InfoLevelSet(4)
 	}
 
+	if !config.TemplateSet(*template) {
+		fmt.Printf("Error! Unknown template format of input file!\n")
+		os.Exit(1)
+	}
+
 	if valid := config.PlatformSet(*platform); valid != 0 {
 		fmt.Printf("Error: invalid platform!\n")
 		os.Exit(1)
@@ -145,11 +150,6 @@ func main() {
 
 	config.OutputGenFile = outputGenFile
 	config.InputRegDumpFile = inputRegDumpFile
-
-	if !config.TemplateSet(*template) {
-		fmt.Printf("Error! Unknown template format of input file!\n")
-		os.Exit(1)
-	}
 
 	parser := parser.ParserData{}
 	parser.Parse()

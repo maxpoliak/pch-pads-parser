@@ -11,7 +11,7 @@ const (
 var template int = 0
 
 func TemplateSet(temp int) bool {
-	if template > TempSpec {
+	if temp > TempSpec {
 		return false
 	} else {
 		template = temp
