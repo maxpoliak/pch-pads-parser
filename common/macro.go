@@ -3,6 +3,11 @@ package common
 import "strconv"
 import "../config"
 
+type Fields interface {
+	DecodeDW0(macro *Macro)
+	DecodeDW1(macro *Macro)
+}
+
 const (
 	PAD_OWN_ACPI   = 0
 	PAD_OWN_DRIVER = 1
@@ -61,6 +66,7 @@ type Macro struct {
 	padID     string
 	str       string
 	ownership uint8
+	Fields
 }
 
 func (macro *Macro) PadIdGet() string {
@@ -245,174 +251,12 @@ func (macro *Macro) check() *Macro {
 }
 
 // or - Set " | " if its needed
-func (macro *Macro) or() *Macro {
+func (macro *Macro) Or() *Macro {
 
 		if str := macro.Get(); str[len(str) - 1] == ')' {
 			macro.Add(" | ")
 		}
 		return macro
-}
-
-// dw0Decode - decode value of DW0 register
-func (macro *Macro) dw0Decode() *Macro {
-	dw0 := macro.Register(PAD_CFG_DW0)
-
-	irqroute := func(macro *Macro, name string) {
-		macro.or().Add("PAD_IRQ_ROUTE(").Add(name).Add(")")
-	}
-
-	somebits := func(macro *Macro, name string) {
-		macro.or().Add(name)
-	}
-
-	for _, field := range []struct {
-		name   string
-		getvalue func() uint8
-		generate func(macro *Macro, name string)
-	} {
-		{	// PAD_FUNC(NF3)
-			"PAD_FUNC",
-			func() uint8 {
-				if dw0.GetPadMode() != 0 || config.InfoLevelGet() <= 3 {
-					return 1
-				}
-				return 0
-			},
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Padfn().Add(")")
-			},
-		},
-
-		{	// PAD_RESET(DEEP)
-			"PAD_RESET",
-			dw0.GetResetConfig,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Rstsrc().Add(")")
-			},
-		},
-
-		{	// PAD_TRIG(OFF)
-			"PAD_TRIG",
-			dw0.GetRXLevelEdgeConfiguration,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Trig().Add(")")
-			},
-		},
-
-		{	// PAD_IRQ_ROUTE(IOAPIC)
-			"IOAPIC",
-			dw0.GetGPIOInputRouteIOxAPIC,
-			irqroute,
-		},
-
-		{	// PAD_IRQ_ROUTE(SCI)
-			"SCI",
-			dw0.GetGPIOInputRouteSCI,
-			irqroute,
-		},
-
-		{	// PAD_IRQ_ROUTE(SMI)
-			"SMI",
-			dw0.GetGPIOInputRouteSMI,
-			irqroute,
-		},
-
-		{	// PAD_IRQ_ROUTE(NMI)
-			"NMI",
-			dw0.GetGPIOInputRouteNMI,
-			irqroute,
-		},
-
-		{	// PAD_RX_POL(EDGE_SINGLE)
-			"PAD_RX_POL",
-			dw0.GetRxInvert,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Invert().Add(")")
-			},
-		},
-
-		{	// PAD_BUF(TX_RX_DISABLE)
-			"PAD_BUF",
-			dw0.GetGPIORxTxDisableStatus,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Bufdis().Add(")")
-			},
-		},
-
-		{	// (1 << 29)
-			"(1 << 29)",
-			dw0.GetRXPadStateSelect,
-			somebits,
-		},
-
-		{	// (1 << 28)
-			"(1 << 28)",
-			dw0.GetRXRawOverrideStatus,
-			somebits,
-		},
-
-		{	// 1
-			"1",
-			dw0.GetGPIOTXState,
-			somebits,
-		},
-	} {
-		if field.getvalue() != 0 {
-			field.generate(macro, field.name)
-		}
-	}
-	return macro
-}
-
-// dw1Decode - decode value of DW1 register
-func (macro *Macro) dw1Decode() *Macro {
-	dw1 := macro.Register(PAD_CFG_DW1)
-	for _, field := range []struct {
-		name   string
-		getvalue func() uint8
-		generate func(macro *Macro, name string)
-	} {
-		// PAD_PULL(DN_20K)
-		{
-			"PAD_PULL",
-			dw1.GetTermination,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Pull().Add(")")
-			},
-		},
-
-		// PAD_IOSSTATE(HIZCRx0)
-		{
-			"PAD_IOSSTATE",
-			dw1.GetIOStandbyState,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").IOSstate().Add(")")
-			},
-		},
-
-		// PAD_IOSTERM(ENPU)
-		{
-			"PAD_IOSTERM",
-			dw1.GetIOStandbyTermination,
-			func(macro *Macro, name string)  {
-				macro.or().Add(name).Add("(").IOTerm().Add(")")
-			},
-		},
-
-		// PAD_CFG_OWN_GPIO(DRIVER)
-		{
-			"PAD_CFG_OWN_GPIO",
-			func() uint8 { return macro.ownership },
-			func(macro *Macro, name string)  {
-				macro.or().Add(name).Add("(").Own().Add(")")
-			},
-		},
-	} {
-		if field.getvalue() != 0 {
-			field.generate(macro, field.name)
-		}
-	}
-	return macro
 }
 
 // AddToMacroIgnoredMask - Print info about ignored field mask
@@ -429,13 +273,17 @@ func (macro *Macro) AddToMacroIgnoredMask() *Macro {
 	if dw0Ignored != 0 {
 		dw0temp := dw0.ValueGet()
 		dw0.ValueSet(dw0Ignored)
-		macro.Add("\n\t/* DW0 : ").dw0Decode().Add(" - IGNORED */")
+		macro.Add("\n\t/* DW0 : ")
+		macro.Fields.DecodeDW0(macro)
+		macro.Add(" - IGNORED */")
 		dw0.ValueSet(dw0temp)
 	}
 	if dw1Ignored != 0 {
 		dw1temp	:= dw1.ValueGet()
 		dw1.ValueSet(dw1Ignored)
-		macro.Add("\n\t/* DW1 : ").dw1Decode().Add(" - IGNORED */")
+		macro.Add("\n\t/* DW1 : ")
+		macro.Fields.DecodeDW1(macro)
+		macro.Add(" - IGNORED */")
 		dw1.ValueSet(dw1temp)
 	}
 	return macro
@@ -471,9 +319,12 @@ func (macro *Macro) Advanced() *Macro {
 		dw1.ValueSet(tempVal)
 	}
 
-	macro.Add(" ").dw0Decode()
+	macro.Add(" ")
+	macro.Fields.DecodeDW0(macro)
 	if dw1.ValueGet() != 0 {
-		macro.Add(", ").dw1Decode().Add("),")
+		macro.Add(", ")
+		macro.Fields.DecodeDW1(macro)
+		macro.Add("),")
 	} else {
 		macro.Add(", 0),")
 	}

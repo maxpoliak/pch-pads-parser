@@ -8,6 +8,7 @@ import (
 // Local packages
 import "../common"
 import "../config"
+import "../fields/cb"
 
 const (
 	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe
@@ -280,6 +281,7 @@ func (PlatformSpecific) GenMacro(id string, dw0 uint32, dw1 uint32, ownership ui
 	var macro common.Macro
 	// use platform-specific interface in Macro struct
 	macro.Platform = PlatformSpecific {}
+	cb.SetFieldsIface(&macro)
 	macro.PadIdSet(id).SetPadOwnership(ownership)
 	macro.Register(PAD_CFG_DW0).ValueSet(dw0).ReadOnlyFieldsSet(PAD_CFG_DW0_RO_FIELDS)
 	macro.Register(PAD_CFG_DW1).ValueSet(dw1).ReadOnlyFieldsSet(PAD_CFG_DW1_RO_FIELDS)
