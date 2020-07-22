@@ -112,7 +112,7 @@ func (fields) DecodeDW1(macro *common.Macro) {
 		getvalue func() uint8
 		generate func(prefix string)
 	} {
-		{	// PAD_IOSSTATE(HIZCRx0)
+		{	// PAD_PULL(NONE)
 			"PAD_PULL",
 			dw1.GetTermination,
 			func(prefix string) {
