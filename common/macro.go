@@ -6,9 +6,9 @@ import "sync"
 import "../config"
 
 type Fields interface {
-	DecodeDW0(macro *Macro)
-	DecodeDW1(macro *Macro)
-	GenerateString(macro *Macro)
+	DecodeDW0()
+	DecodeDW1()
+	GenerateString()
 }
 
 const (
@@ -292,7 +292,7 @@ func (macro *Macro) AddToMacroIgnoredMask() *Macro {
 		dw0temp := dw0.ValueGet()
 		dw0.ValueSet(dw0Ignored)
 		macro.Add("\n\t/* DW0 : ")
-		macro.Fields.DecodeDW0(macro)
+		macro.Fields.DecodeDW0()
 		macro.Add(" - IGNORED */")
 		dw0.ValueSet(dw0temp)
 	}
@@ -300,7 +300,7 @@ func (macro *Macro) AddToMacroIgnoredMask() *Macro {
 		dw1temp	:= dw1.ValueGet()
 		dw1.ValueSet(dw1Ignored)
 		macro.Add("\n\t/* DW1 : ")
-		macro.Fields.DecodeDW1(macro)
+		macro.Fields.DecodeDW1()
 		macro.Add(" - IGNORED */")
 		dw1.ValueSet(dw1temp)
 	}
@@ -336,7 +336,7 @@ func (macro *Macro) GenerateFields() *Macro {
 		dw1.ValueSet(tempVal)
 	}
 
-	macro.Fields.GenerateString(macro)
+	macro.Fields.GenerateString()
 	return macro
 }
 

@@ -20,7 +20,8 @@ type field struct {
 
 // generate - wrapper for generating bitfield macros string
 // fileds : field structure
-func generate(macro *common.Macro, fileds ...*field) {
+func generate(fileds ...*field) {
+	macro := common.GetInstanceMacro()
 	var allhidden bool = true
 	for _, field := range fileds {
 		if field.unhide {
@@ -43,9 +44,10 @@ func generate(macro *common.Macro, fileds ...*field) {
 }
 
 // DecodeDW0 - decode value of DW0 register
-func (FieldMacros) DecodeDW0(macro *common.Macro) {
+func (FieldMacros) DecodeDW0() {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(common.PAD_CFG_DW0)
-	generate(macro,
+	generate(
 		&field {
 			prefix : "PAD_FUNC",
 			unhide : config.InfoLevelGet() <= 3 || dw0.GetPadMode() != 0,
@@ -118,9 +120,10 @@ func (FieldMacros) DecodeDW0(macro *common.Macro) {
 }
 
 // DecodeDW1 - decode value of DW1 register
-func (FieldMacros) DecodeDW1(macro *common.Macro) {
+func (FieldMacros) DecodeDW1() {
+	macro := common.GetInstanceMacro()
 	dw1 := macro.Register(common.PAD_CFG_DW1)
-	generate(macro,
+	generate(
 		&field {
 			prefix : "PAD_PULL",
 			unhide : dw1.GetTermination() != 0,
@@ -147,16 +150,11 @@ func (FieldMacros) DecodeDW1(macro *common.Macro) {
 	)
 }
 
-func (bitfields FieldMacros) GenerateString(macro *common.Macro) {
+func (bitfields FieldMacros) GenerateString() {
+	macro := common.GetInstanceMacro()
 	macro.Add("_PAD_CFG_STRUCT(").Id().Add(", ")
-	bitfields.DecodeDW0(macro)
+	bitfields.DecodeDW0()
 	macro.Add(", ")
-	bitfields.DecodeDW1(macro)
+	bitfields.DecodeDW1()
 	macro.Add("),")
-}
-
-// SetFieldsIface - set the interface for decoding configuration
-// registers DW0 and DW1.
-func SetFieldsIface(macro *common.Macro) {
-	macro.Fields = FieldMacros{}
 }

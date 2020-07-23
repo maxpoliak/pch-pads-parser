@@ -16,7 +16,8 @@ type field struct {
 
 // generate - wrapper for generating bitfield macros string
 // fileds : field structure
-func generate(macro *common.Macro, fileds ...*field) {
+func generate(fileds ...*field) {
+	macro := common.GetInstanceMacro()
 	for _, field := range fileds {
 		if field.override != nil {
 			// override if necessary
@@ -34,7 +35,8 @@ func generate(macro *common.Macro, fileds ...*field) {
 }
 
 // DecodeDW0 - decode value of DW0 register
-func (FieldMacros) DecodeDW0(macro *common.Macro) {
+func (FieldMacros) DecodeDW0() {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(common.PAD_CFG_DW0)
 
 	ownershipStatus := func() uint8 {
@@ -42,7 +44,7 @@ func (FieldMacros) DecodeDW0(macro *common.Macro) {
 		return 0
 	}
 
-	generate(macro,
+	generate(
 		&field {
 			configmap : map[uint8]string{
 				0: "GpioPadModeGpio",
@@ -129,9 +131,10 @@ func (FieldMacros) DecodeDW0(macro *common.Macro) {
 }
 
 // DecodeDW1 - decode value of DW1 register
-func (FieldMacros) DecodeDW1(macro *common.Macro) {
+func (FieldMacros) DecodeDW1() {
+	macro := common.GetInstanceMacro()
 	dw1 := macro.Register(common.PAD_CFG_DW1)
-	generate(macro,
+	generate(
 		&field {
 			configmap : map[uint8]string {
 				0x0: "GpioTermNone",
@@ -150,9 +153,10 @@ func (FieldMacros) DecodeDW1(macro *common.Macro) {
 }
 
 // GenerateString - generates the entire string of bitfield macros.
-func (bitfields FieldMacros) GenerateString(macro *common.Macro) {
+func (bitfields FieldMacros) GenerateString() {
+	macro := common.GetInstanceMacro()
 	macro.Add("{ GPIO_SKL_H_").Id().Add(", { ")
-	bitfields.DecodeDW0(macro)
-	bitfields.DecodeDW1(macro)
+	bitfields.DecodeDW0()
+	bitfields.DecodeDW1()
 	macro.Add(" GpioPadConfigLock },") // TODO: configure GpioPadConfigLock
 }
