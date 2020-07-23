@@ -76,9 +76,15 @@ var	instanceMacro *Macro
 var	once           sync.Once
 
 // GetInstance returns singleton
-func GetInstanceMacro() *Macro {
-	once.Do(func() { instanceMacro = &Macro{} })
+func GetInstanceMacro(p PlatformSpecific, f Fields) *Macro {
+	once.Do(func() {
+		instanceMacro = &Macro{ Platform : p, Fields : f }
+	})
 	return instanceMacro
+}
+
+func GetMacro() *Macro {
+	return GetInstanceMacro(nil, nil)
 }
 
 func (macro *Macro) PadIdGet() string {

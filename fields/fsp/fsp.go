@@ -17,7 +17,7 @@ type field struct {
 // generate - wrapper for generating bitfield macros string
 // fileds : field structure
 func generate(fileds ...*field) {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	for _, field := range fileds {
 		if field.override != nil {
 			// override if necessary
@@ -36,7 +36,7 @@ func generate(fileds ...*field) {
 
 // DecodeDW0 - decode value of DW0 register
 func (FieldMacros) DecodeDW0() {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	dw0 := macro.Register(common.PAD_CFG_DW0)
 
 	ownershipStatus := func() uint8 {
@@ -132,7 +132,7 @@ func (FieldMacros) DecodeDW0() {
 
 // DecodeDW1 - decode value of DW1 register
 func (FieldMacros) DecodeDW1() {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	dw1 := macro.Register(common.PAD_CFG_DW1)
 	generate(
 		&field {
@@ -154,7 +154,7 @@ func (FieldMacros) DecodeDW1() {
 
 // GenerateString - generates the entire string of bitfield macros.
 func (bitfields FieldMacros) GenerateString() {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	macro.Add("{ GPIO_SKL_H_").Id().Add(", { ")
 	bitfields.DecodeDW0()
 	bitfields.DecodeDW1()

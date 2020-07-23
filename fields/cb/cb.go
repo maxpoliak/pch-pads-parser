@@ -21,7 +21,7 @@ type field struct {
 // generate - wrapper for generating bitfield macros string
 // fileds : field structure
 func generate(fileds ...*field) {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	var allhidden bool = true
 	for _, field := range fileds {
 		if field.unhide {
@@ -45,7 +45,7 @@ func generate(fileds ...*field) {
 
 // DecodeDW0 - decode value of DW0 register
 func (FieldMacros) DecodeDW0() {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	dw0 := macro.Register(common.PAD_CFG_DW0)
 	generate(
 		&field {
@@ -121,7 +121,7 @@ func (FieldMacros) DecodeDW0() {
 
 // DecodeDW1 - decode value of DW1 register
 func (FieldMacros) DecodeDW1() {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	dw1 := macro.Register(common.PAD_CFG_DW1)
 	generate(
 		&field {
@@ -151,7 +151,7 @@ func (FieldMacros) DecodeDW1() {
 }
 
 func (bitfields FieldMacros) GenerateString() {
-	macro := common.GetInstanceMacro()
+	macro := common.GetMacro()
 	macro.Add("_PAD_CFG_STRUCT(").Id().Add(", ")
 	bitfields.DecodeDW0()
 	macro.Add(", ")

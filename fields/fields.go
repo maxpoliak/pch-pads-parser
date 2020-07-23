@@ -8,11 +8,10 @@ import "./cb"
 
 // InterfaceSet - set the interface for decoding configuration
 // registers DW0 and DW1.
-func InterfaceSet() {
-	macro := common.GetInstanceMacro()
+func InterfaceGet() common.Fields {
 	if config.IsFspStyleMacro() {
-		macro.Fields = fsp.FieldMacros{}
+		return fsp.FieldMacros{}
 	} else {
-		macro.Fields = cb.FieldMacros{}
+		return cb.FieldMacros{}
 	}
 }
