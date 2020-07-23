@@ -21,8 +21,10 @@ type field struct {
 // generate - wrapper for generating bitfield macros string
 // fileds : field structure
 func generate(macro *common.Macro, fileds ...*field) {
+	var allhidden bool = true
 	for _, field := range fileds {
 		if field.unhide {
+			allhidden = false
 			macro.Or()
 			if field.prefix != "" {
 				macro.Add(field.prefix).Add("(")
@@ -37,6 +39,7 @@ func generate(macro *common.Macro, fileds ...*field) {
 			}
 		}
 	}
+	if allhidden { macro.Add("0") }
 }
 
 // DecodeDW0 - decode value of DW0 register
@@ -142,6 +145,14 @@ func (FieldMacros) DecodeDW1(macro *common.Macro) {
 			configurator : func() { macro.Own() },
 		},
 	)
+}
+
+func (bitfields FieldMacros) GenerateString(macro *common.Macro) {
+	macro.Add("_PAD_CFG_STRUCT(").Id().Add(", ")
+	bitfields.DecodeDW0(macro)
+	macro.Add(", ")
+	bitfields.DecodeDW1(macro)
+	macro.Add("),")
 }
 
 // SetFieldsIface - set the interface for decoding configuration

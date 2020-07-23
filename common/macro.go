@@ -6,6 +6,7 @@ import "../config"
 type Fields interface {
 	DecodeDW0(macro *Macro)
 	DecodeDW1(macro *Macro)
+	GenerateString(macro *Macro)
 }
 
 const (
@@ -307,8 +308,6 @@ func (macro *Macro) Advanced() *Macro {
 		macro.AddToMacroIgnoredMask()
 		macro.Add("\n\t")
 	}
-	macro.Add("_PAD_CFG_STRUCT(").Id().Add(",")
-
 	if config.AreFieldsIgnored() {
 		// Consider bit fields that should be ignored when regenerating
 		// advansed macros
@@ -319,15 +318,7 @@ func (macro *Macro) Advanced() *Macro {
 		dw1.ValueSet(tempVal)
 	}
 
-	macro.Add(" ")
-	macro.Fields.DecodeDW0(macro)
-	if dw1.ValueGet() != 0 {
-		macro.Add(", ")
-		macro.Fields.DecodeDW1(macro)
-		macro.Add("),")
-	} else {
-		macro.Add(", 0),")
-	}
+	macro.Fields.GenerateString(macro)
 	return macro
 }
 
