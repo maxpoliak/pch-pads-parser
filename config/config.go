@@ -100,3 +100,11 @@ func InfoLevelSet(lvl uint8) {
 func InfoLevelGet() uint8 {
 	return infolevel
 }
+
+var fspStyleUsed bool = false
+func FspStyleMacroUsed(flag bool) {
+	fspStyleUsed = flag
+}
+func IsFspStyleMacro() bool {
+	return fspStyleUsed
+}
