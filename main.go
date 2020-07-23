@@ -49,7 +49,11 @@ func main() {
 
 	advFlag := flag.Bool("adv",
 		false,
-		"generate advanced macros only\n")
+		"generate advanced macros in coreboot style\n")
+
+	fspFlag := flag.Bool("fsp",
+		false,
+		"generate advanced macros in fsp/edk2 style\n")
 
 	ignFlag := flag.Bool("ign",
 		false,
@@ -98,7 +102,6 @@ func main() {
 	flag.Parse()
 
 	config.RawFormatFlagSet(*rawFlag)
-	config.AdvancedFormatFlagSet(*advFlag)
 	config.IgnoredFieldsFlagSet(*ignFlag)
 	config.NonCheckingFlagSet(*nonCheckFlag)
 
@@ -130,6 +133,16 @@ func main() {
 		fmt.Printf("Error: inteltool log file was not found!\n")
 		os.Exit(1)
 	}
+
+	if *fspFlag && *advFlag {
+		fmt.Printf("These options are not used together. You should choose:\n" +
+		"\t-fsp: use fsp/edk2 style for advanced macros\n" +
+		"\t-adv: use coreboot style for advanced macros\n")
+		os.Exit(0)
+	}
+
+	config.AdvancedFormatFlagSet(*advFlag)
+	config.FspStyleMacroUsed(*fspFlag)
 
 	// create dir for output files
 	err = os.MkdirAll("generate", os.ModePerm)
