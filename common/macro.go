@@ -269,7 +269,7 @@ func (macro *Macro) Or() *Macro {
 // AddToMacroIgnoredMask - Print info about ignored field mask
 // title - warning message
 func (macro *Macro) AddToMacroIgnoredMask() *Macro {
-	if config.InfoLevelGet() < 4 {
+	if config.InfoLevelGet() < 4 || config.IsFspStyleMacro() {
 		return macro
 	}
 	dw0 := macro.Register(PAD_CFG_DW0)
@@ -375,7 +375,7 @@ func (macro *Macro) Generate() string {
 		macro.Platform.NativeFunctionMacroAdd(macro)
 	}
 
-	if config.IsAdvancedFormatUsed() {
+	if config.IsAdvancedFormatUsed() || config.IsFspStyleMacro() {
 		// Clear control mask to generate advanced macro only
 		return macro.Advanced().Get()
 	}
