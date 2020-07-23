@@ -50,12 +50,12 @@ const (
 
 // PlatformSpecific - platform-specific interface
 type PlatformSpecific interface {
-	Rstsrc(macro *Macro)
-	Pull(macro *Macro)
-	GpiMacroAdd(macro *Macro)
-	GpoMacroAdd(macro *Macro)
-	NativeFunctionMacroAdd(macro *Macro)
-	NoConnMacroAdd(macro *Macro)
+	Rstsrc()
+	Pull()
+	GpiMacroAdd()
+	GpoMacroAdd()
+	NativeFunctionMacroAdd()
+	NoConnMacroAdd()
 }
 
 // Macro - contains macro information and methods
@@ -147,14 +147,14 @@ func (macro *Macro) Separator() *Macro {
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: Macro
 func (macro *Macro) Rstsrc() *Macro {
-	macro.Platform.Rstsrc(macro)
+	macro.Platform.Rstsrc()
 	return macro
 }
 
 // Adds The Pad Termination (TERM) parameter from DW1 to the macro as a new argument
 // return: Macro
 func (macro *Macro) Pull() *Macro {
-	macro.Platform.Pull(macro)
+	macro.Platform.Pull()
 	return macro
 }
 
@@ -371,19 +371,19 @@ func (macro *Macro) Generate() string {
 		// GPIO
 		switch dw0.GetGPIORxTxDisableStatus() {
 		case txDisable:
-			macro.Platform.GpiMacroAdd(macro) // GPI
+			macro.Platform.GpiMacroAdd() // GPI
 
 		case rxDisable:
-			macro.Platform.GpoMacroAdd(macro) // GPO
+			macro.Platform.GpoMacroAdd() // GPO
 
 		case rxDisable | txDisable:
-			macro.Platform.NoConnMacroAdd(macro) // NC
+			macro.Platform.NoConnMacroAdd() // NC
 
 		default:
 			macro.Bidirection()
 		}
 	} else {
-		macro.Platform.NativeFunctionMacroAdd(macro)
+		macro.Platform.NativeFunctionMacroAdd()
 	}
 
 	if config.IsCorebootFiledsFormatUsed() || config.IsFspStyleMacro() {

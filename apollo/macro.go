@@ -35,7 +35,8 @@ type PlatformSpecific struct {}
 
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: macro
-func (PlatformSpecific) Rstsrc(macro *common.Macro) {
+func (PlatformSpecific) Rstsrc() {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	// See src/soc/intel/apollolake/gpio_apl.c:
 	// static const struct reset_mapping rst_map[] = {
@@ -60,7 +61,8 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 
 // Adds The Pad Termination (TERM) parameter from DW1 to the macro as a new argument
 // return: macro
-func (PlatformSpecific) Pull(macro *common.Macro) {
+func (PlatformSpecific) Pull() {
+	macro := common.GetInstanceMacro()
 	dw1 := macro.Register(PAD_CFG_DW1)
 	var pull = map[uint8]string{
 		PULL_NONE:   "NONE",
@@ -83,7 +85,8 @@ func (PlatformSpecific) Pull(macro *common.Macro) {
 }
 
 // Generate macro to cause peripheral IRQ when configured in GPIO input mode
-func ioApicRoute(macro *common.Macro) bool {
+func ioApicRoute() bool {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
@@ -103,7 +106,8 @@ func ioApicRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause NMI when configured in GPIO input mode
-func nmiRoute(macro *common.Macro) bool {
+func nmiRoute() bool {
+	macro := common.GetInstanceMacro()
 	if macro.Register(PAD_CFG_DW0).GetGPIOInputRouteNMI() == 0 {
 		return false
 	}
@@ -113,7 +117,8 @@ func nmiRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause SCI when configured in GPIO input mode
-func sciRoute(macro *common.Macro) bool {
+func sciRoute() bool {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteSCI() == 0 {
@@ -135,7 +140,8 @@ func sciRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause SMI when configured in GPIO input mode
-func smiRoute(macro *common.Macro) bool {
+func smiRoute() bool {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 	if dw0.GetGPIOInputRouteSMI() == 0 {
@@ -157,16 +163,17 @@ func smiRoute(macro *common.Macro) bool {
 }
 
 // Generate macro for GPI port
-func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) GpiMacroAdd() {
+	macro := common.GetInstanceMacro()
 	var ids []string
 	macro.Set("PAD_CFG_GPI")
-	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
+	for routeid, isRoute := range map[string]func() (bool) {
 		"IOAPIC": ioApicRoute,
 		"SCI":    sciRoute,
 		"SMI":    smiRoute,
 		"NMI":    nmiRoute,
 	} {
-		if isRoute(macro) {
+		if isRoute() {
 			ids = append(ids, routeid)
 		}
 	}
@@ -209,7 +216,8 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 
 
 // Adds PAD_CFG_GPO macro with arguments
-func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) GpoMacroAdd() {
+	macro := common.GetInstanceMacro()
 	dw0 :=  macro.Register(PAD_CFG_DW0)
 	dw1 :=  macro.Register(PAD_CFG_DW1)
 	term := dw1.GetTermination()
@@ -240,7 +248,8 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 }
 
 // Adds PAD_CFG_NF macro with arguments
-func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) NativeFunctionMacroAdd() {
+	macro := common.GetInstanceMacro()
 	dw1 := macro.Register(PAD_CFG_DW1)
 	isIOStandbyStateUsed := dw1.GetIOStandbyState() != 0
 	isIOStandbyTerminationUsed := dw1.GetIOStandbyTermination() != 0
@@ -271,7 +280,8 @@ func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
 }
 
 // Adds PAD_NC macro
-func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) NoConnMacroAdd() {
+	macro := common.GetInstanceMacro()
 	dw1 := macro.Register(PAD_CFG_DW1)
 
 	if dw1.GetIOStandbyState() == common.TxDRxE {

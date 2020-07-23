@@ -24,7 +24,8 @@ const (
 type PlatformSpecific struct {}
 
 // Adds the PADRSTCFG parameter from PAD_CFG_DW0 to the macro as a new argument
-func (PlatformSpecific) Rstsrc(macro *common.Macro) {
+func (PlatformSpecific) Rstsrc() {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	var resetsrc = map[uint8]string{
 		0: "PWROK",
@@ -77,7 +78,8 @@ func (PlatformSpecific) Rstsrc(macro *common.Macro) {
 
 // Adds The Pad Termination (TERM) parameter from PAD_CFG_DW1 to the macro
 // as a new argument
-func (PlatformSpecific) Pull(macro *common.Macro) {
+func (PlatformSpecific) Pull() {
+	macro := common.GetInstanceMacro()
 	dw1 := macro.Register(PAD_CFG_DW1)
 	var pull = map[uint8]string{
 		0x0: "NONE",
@@ -102,7 +104,8 @@ func (PlatformSpecific) Pull(macro *common.Macro) {
 }
 
 // Generate macro to cause peripheral IRQ when configured in GPIO input mode
-func ioApicRoute(macro *common.Macro) bool {
+func ioApicRoute() bool {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
 		return false
@@ -125,7 +128,8 @@ func ioApicRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause NMI when configured in GPIO input mode
-func nmiRoute(macro *common.Macro) bool {
+func nmiRoute() bool {
+	macro := common.GetInstanceMacro()
 	if macro.Register(PAD_CFG_DW0).GetGPIOInputRouteNMI() == 0 {
 		return false
 	}
@@ -135,7 +139,8 @@ func nmiRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause SCI when configured in GPIO input mode
-func sciRoute(macro *common.Macro) bool {
+func sciRoute() bool {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteSCI() == 0 {
 		return false
@@ -156,7 +161,8 @@ func sciRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause SMI when configured in GPIO input mode
-func smiRoute(macro *common.Macro) bool {
+func smiRoute() bool {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteSMI() == 0 {
 		return false
@@ -175,17 +181,17 @@ func smiRoute(macro *common.Macro) bool {
 }
 
 // Adds PAD_CFG_GPI macro with arguments
-func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) GpiMacroAdd() {
+	macro := common.GetInstanceMacro()
 	var ids []string
-
 	macro.Set("PAD_CFG_GPI")
-	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
+	for routeid, isRoute := range map[string]func() (bool) {
 		"IOAPIC": ioApicRoute,
 		"SCI":    sciRoute,
 		"SMI":    smiRoute,
 		"NMI":    nmiRoute,
 	} {
-		if isRoute(macro) {
+		if isRoute() {
 			ids = append(ids, routeid)
 		}
 	}
@@ -217,7 +223,8 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 }
 
 // Adds PAD_CFG_GPO macro with arguments
-func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) GpoMacroAdd() {
+	macro := common.GetInstanceMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	term := macro.Register(PAD_CFG_DW1).GetTermination()
 
@@ -247,13 +254,15 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 }
 
 // Adds PAD_CFG_NF macro with arguments
-func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) NativeFunctionMacroAdd() {
+	macro := common.GetInstanceMacro()
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 	macro.Set("PAD_CFG_NF").Add("(").Id().Pull().Rstsrc().Padfn().Add("),")
 }
 
 // Adds PAD_NC macro
-func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) NoConnMacroAdd() {
+	macro := common.GetInstanceMacro()
 	// #define PAD_NC(pad, pull)
 	// _PAD_CFG_STRUCT(pad,
 	//     PAD_FUNC(GPIO) | PAD_RESET(DEEP) | PAD_TRIG(OFF) | PAD_BUF(TX_RX_DISABLE),
@@ -282,7 +291,7 @@ func (PlatformSpecific) GenMacro(id string, dw0 uint32, dw1 uint32, ownership ui
 	// use platform-specific interface in Macro struct
 	macro.Platform = PlatformSpecific {}
 	macro.Clear()
-	fields.InterfaceSet(macro)
+	fields.InterfaceSet()
 	macro.PadIdSet(id).SetPadOwnership(ownership)
 	macro.Register(PAD_CFG_DW0).ValueSet(dw0).ReadOnlyFieldsSet(PAD_CFG_DW0_RO_FIELDS)
 	macro.Register(PAD_CFG_DW1).ValueSet(dw1).ReadOnlyFieldsSet(PAD_CFG_DW1_RO_FIELDS)
