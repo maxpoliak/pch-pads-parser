@@ -278,10 +278,11 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 // return: string of macro
 //         error
 func (PlatformSpecific) GenMacro(id string, dw0 uint32, dw1 uint32, ownership uint8) string {
-	var macro common.Macro
+	macro := common.GetInstanceMacro()
 	// use platform-specific interface in Macro struct
 	macro.Platform = PlatformSpecific {}
-	fields.InterfaceSet(&macro)
+	macro.Clear()
+	fields.InterfaceSet(macro)
 	macro.PadIdSet(id).SetPadOwnership(ownership)
 	macro.Register(PAD_CFG_DW0).ValueSet(dw0).ReadOnlyFieldsSet(PAD_CFG_DW0_RO_FIELDS)
 	macro.Register(PAD_CFG_DW1).ValueSet(dw1).ReadOnlyFieldsSet(PAD_CFG_DW1_RO_FIELDS)

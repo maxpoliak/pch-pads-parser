@@ -1,6 +1,8 @@
 package common
 
 import "strconv"
+import "sync"
+
 import "../config"
 
 type Fields interface {
@@ -68,6 +70,15 @@ type Macro struct {
 	str       string
 	ownership uint8
 	Fields
+}
+
+var	instanceMacro *Macro
+var	once           sync.Once
+
+// GetInstance returns singleton
+func GetInstanceMacro() *Macro {
+	once.Do(func() { instanceMacro = &Macro{} })
+	return instanceMacro
 }
 
 func (macro *Macro) PadIdGet() string {
