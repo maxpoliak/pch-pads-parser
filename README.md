@@ -53,8 +53,9 @@ platform type is set using the -p option (Sunrise by default):
 
 (shell)$./intelp2m -p <platform> -file path/to/inteltool.log
 ```
+### Bit fields in macros
 
-Use the -fld option to only generate a sequence of bitfield macros:
+Use the -fld option to only generate a sequence of bit fields in a new macro:
 
 ```bash
 (shell)$./intelp2m -fld -p apl -file ../apollo-inteltool.log
@@ -62,6 +63,20 @@ Use the -fld option to only generate a sequence of bitfield macros:
 
 ```c
 _PAD_CFG_STRUCT(GPIO_37, PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF), PAD_PULL(DN_20K)), /* LPSS_UART0_TXD */
+```
+
+### FSP-style macro
+
+The utility allows to generate macros that include fsp/edk2-palforms/slimbootloader-style bitfields:
+
+```c
+{ GPIO_SKL_H_GPP_A12, { GpioPadModeGpio, GpioHostOwnAcpi, GpioDirInInvOut, GpioOutLow, GpioIntSci | GpioIntLvlEdgDis, GpioResetNormal, GpioTermNone,  GpioPadConfigLock },	/* GPIO */
+```
+
+To do this, use the -fsp option on the command line:
+
+```bash
+(shell)$./intelp2m -fsp -p apl -file ../apollo-inteltool.log
 ```
 
 ### Macro Check
