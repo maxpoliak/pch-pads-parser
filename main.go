@@ -47,13 +47,13 @@ func main() {
 		false,
 		"generate macros with raw values of registers DW0, DW1\n")
 
-	advFlag := flag.Bool("adv",
+	fldFlag := flag.Bool("fld",
 		false,
-		"generate advanced macros in coreboot style\n")
+		"generate a sequence of bitfield macros in coreboot style\n")
 
 	fspFlag := flag.Bool("fsp",
 		false,
-		"generate advanced macros in fsp/edk2 style\n")
+		"generate a sequence of bitfield macros in fsp/edk2 style\n")
 
 	ignFlag := flag.Bool("ign",
 		false,
@@ -134,14 +134,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *fspFlag && *advFlag {
+	if *fspFlag && *fldFlag {
 		fmt.Printf("These options are not used together. You should choose:\n" +
 		"\t-fsp: use fsp/edk2 style for advanced macros\n" +
 		"\t-adv: use coreboot style for advanced macros\n")
 		os.Exit(0)
 	}
 
-	config.AdvancedFormatFlagSet(*advFlag)
+	config.CorebootFiledsFormatSet(*fldFlag)
 	config.FspStyleMacroUsed(*fspFlag)
 
 	// create dir for output files

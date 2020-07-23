@@ -252,7 +252,7 @@ func (macro *Macro) IOTerm() *Macro {
 // Check created macro
 func (macro *Macro) check() *Macro {
 	if !macro.Register(PAD_CFG_DW0).MaskCheck() {
-		return macro.Advanced()
+		return macro.GenerateFields()
 	}
 	return macro
 }
@@ -296,8 +296,8 @@ func (macro *Macro) AddToMacroIgnoredMask() *Macro {
 	return macro
 }
 
-// Generate Advanced Macro
-func (macro *Macro) Advanced() *Macro {
+// GenerateFields - generate bitfield macros
+func (macro *Macro) GenerateFields() *Macro {
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 
@@ -375,9 +375,9 @@ func (macro *Macro) Generate() string {
 		macro.Platform.NativeFunctionMacroAdd(macro)
 	}
 
-	if config.IsAdvancedFormatUsed() || config.IsFspStyleMacro() {
+	if config.IsCorebootFiledsFormatUsed() || config.IsFspStyleMacro() {
 		// Clear control mask to generate advanced macro only
-		return macro.Advanced().Get()
+		return macro.GenerateFields().Get()
 	}
 
 	if config.IsNonCheckingFlagUsed() {

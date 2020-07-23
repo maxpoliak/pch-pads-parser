@@ -54,20 +54,21 @@ platform type is set using the -p option (Sunrise by default):
 (shell)$./intelp2m -p <platform> -file path/to/inteltool.log
 ```
 
-Use the -adv option to only generate advanced macros:
+Use the -fld option to only generate a sequence of bitfield macros:
 
 ```bash
-(shell)$./intelp2m -adv -p apl -file ../apollo-inteltool.log
+(shell)$./intelp2m -fld -p apl -file ../apollo-inteltool.log
 ```
 
 ```c
 _PAD_CFG_STRUCT(GPIO_37, PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF), PAD_PULL(DN_20K)), /* LPSS_UART0_TXD */
 ```
+
 ### Macro Check
 
 After generating the macro, the utility checks all used
 fields of the configuration registers. If some field has been
-ignored, the utility generates advanced macros. To not check
+ignored, the utility generates field macros. To not check
 macros, use the -n option:
 
 ```bash
@@ -118,12 +119,11 @@ DW0 : PAD_TRIG(OFF) - IGNORED
 
 ### Ignoring Fields
 
-Utilities can generate the _PAD_CFG_STRUCT advanced macro and
-exclude fields from it that are not in the corresponding PAD_CFG_*()
-macro:
+Utilities can generate the _PAD_CFG_STRUCT macro and exclude fields
+from it that are not in the corresponding PAD_CFG_*() macro:
 
 ```bash
-(shell)$./intelp2m -iiii -adv -ign -file /path/to/inteltool.log
+(shell)$./intelp2m -iiii -fld -ign -file /path/to/inteltool.log
 ```
 
 ```c

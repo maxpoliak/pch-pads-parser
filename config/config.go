@@ -69,12 +69,12 @@ func IsRawFormatUsed() bool {
 	return useRawFormat
 }
 
-var useAdvancedFormat bool = false
-func AdvancedFormatFlagSet(flag bool) {
-	useAdvancedFormat = flag
+var useCorebootFiledsFlag bool = false
+func CorebootFiledsFormatSet(flag bool) {
+	useCorebootFiledsFlag = flag
 }
-func IsAdvancedFormatUsed() bool {
-	return useAdvancedFormat
+func IsCorebootFiledsFormatUsed() bool {
+	return useCorebootFiledsFlag
 }
 
 var ignoredFieldsFormat bool = false
