@@ -111,6 +111,12 @@ func (macro *Macro) Get() string {
 	return macro.str
 }
 
+// set a string in a macro instead of its previous contents
+func (macro *Macro) Clear() *Macro {
+	macro.Set("")
+	return macro
+}
+
 // Adds PAD Id to the macro as a new argument
 // return: Macro
 func (macro *Macro) Id() *Macro {
@@ -300,11 +306,12 @@ func (macro *Macro) Advanced() *Macro {
 	dw1Ignored := dw1.IgnoredFieldsGet()
 
 	if config.InfoLevelGet() <= 1 {
-		macro.Set("")
+		macro.Clear()
 	} else if config.InfoLevelGet() >= 3 {
 		// Add string of reference macro as a comment
 		reference := macro.Get()
-		macro.Set("/* ").Add(reference).Add(" */")
+		macro.Clear()
+		macro.Add("/* ").Add(reference).Add(" */")
 		macro.AddToMacroIgnoredMask()
 		macro.Add("\n\t")
 	}
