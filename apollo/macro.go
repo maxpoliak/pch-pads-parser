@@ -33,6 +33,10 @@ const (
 
 type PlatformSpecific struct {}
 
+// RemmapRstSrc - remmap Pad Reset Source Config
+// remmap is not required because it is the same as common.
+func (PlatformSpecific) RemmapRstSrc() {}
+
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: macro
 func (PlatformSpecific) Rstsrc() {

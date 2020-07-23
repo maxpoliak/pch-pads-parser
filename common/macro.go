@@ -38,19 +38,22 @@ const (
 )
 
 const (
-	RST_DEEP   = 1
-)
-
-const (
 	TRIG_LEVEL       = 0
 	TRIG_EDGE_SINGLE = 1
 	TRIG_OFF         = 2
 	TRIG_EDGE_BOTH   = 3
 )
 
+const (
+	RST_PWROK  = 0
+	RST_DEEP   = 1
+	RST_PLTRST = 2
+	RST_RSMRST = 3
+)
+
 // PlatformSpecific - platform-specific interface
 type PlatformSpecific interface {
-	Rstsrc()
+	RemmapRstSrc()
 	Pull()
 	GpiMacroAdd()
 	GpoMacroAdd()
@@ -153,8 +156,14 @@ func (macro *Macro) Separator() *Macro {
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: Macro
 func (macro *Macro) Rstsrc() *Macro {
-	macro.Platform.Rstsrc()
-	return macro
+	dw0 := macro.Register(PAD_CFG_DW0)
+	var resetsrc = map[uint8]string {
+		0: "PWROK",
+		1: "DEEP",
+		2: "PLTRST",
+		3: "RSMRST",
+	}
+	return macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 }
 
 // Adds The Pad Termination (TERM) parameter from DW1 to the macro as a new argument
@@ -371,8 +380,10 @@ const (
 // Gets base string of current macro
 // return: string of macro
 func (macro *Macro) Generate() string {
-	macro.Set("PAD_CFG")
 	dw0 := macro.Register(PAD_CFG_DW0)
+
+	macro.Platform.RemmapRstSrc()
+	macro.Set("PAD_CFG")
 	if dw0.GetPadMode() == 0 {
 		// GPIO
 		switch dw0.GetGPIORxTxDisableStatus() {

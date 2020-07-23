@@ -23,57 +23,35 @@ const (
 
 type PlatformSpecific struct {}
 
-// Adds the PADRSTCFG parameter from PAD_CFG_DW0 to the macro as a new argument
-func (PlatformSpecific) Rstsrc() {
+// RemmapRstSrc - remmap Pad Reset Source Config 
+func (PlatformSpecific) RemmapRstSrc() {
 	macro := common.GetMacro()
-	dw0 := macro.Register(PAD_CFG_DW0)
-	var resetsrc = map[uint8]string{
-		0: "PWROK",
-		1: "DEEP",
-		2: "PLTRST",
-		3: "RSMRST",
-	}
-
 	if config.TemplateGet() != config.TempInteltool {
 		// Use reset source remapping only if the input file is inteltool.log dump
-		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 		return
 	}
-
 	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
-		// See reset map for the GPD Group in the Community 2:
+		// See reset map for the Sunrise GPD Group in the Community 2:
 		// https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
-		// static const struct reset_mapping rst_map_com2[] = {
-		// { .logical = PAD_CFG0_LOGICAL_RESET_PWROK,  .chipset = 0U << 30},
-		// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30},
-		// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30},
-		// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 3U << 30},
-		// };
-		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
+		// remmap is not required because it is the same as common.
 		return
 	}
 
-	// For other pads of the Sunrise Point chipset, as well as for all pads of the Lewisburg
-	// chipset, remapping of the card requires the port reset source value.
-	// See https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
-	// and https://github.com/coreboot/coreboot/blob/master/src/soc/intel/xeon_sp/gpio.c#L16
-	//
-	// static const struct reset_mapping rst_map[] = {
-	// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 0U << 30 },
-	// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30 },
-	// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30 },
-	// };
-	var remapping = map[uint8]string{
-		0: "RSMRST",
-		1: "DEEP",
-		2: "PLTRST",
+	dw0 := macro.Register(PAD_CFG_DW0)
+	var remapping = map[uint8]uint32{
+		0: common.RST_RSMRST << common.PadRstCfgShift,
+		1: common.RST_DEEP   << common.PadRstCfgShift,
+		2: common.RST_PLTRST << common.PadRstCfgShift,
 	}
-	str, valid := remapping[dw0.GetResetConfig()]
-	if !valid {
-		str = "RESERVED" // from intel doc: 3h = Reserved
-		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
+	resetsrc, valid := remapping[dw0.GetResetConfig()]
+	if valid {
+		// dw0.SetResetConfig(resetsrc)
+		ResetConfigFieldVal := (dw0.ValueGet() & 0x3fffffff) | remapping[dw0.GetResetConfig()]
+		dw0.ValueSet(ResetConfigFieldVal)
+	} else {
+		fmt.Println("Invalid Pad Reset Config [ 0x", resetsrc ," ] for ", macro.PadIdGet())
 	}
-	macro.Separator().Add(str)
+	dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
 }
 
 // Adds The Pad Termination (TERM) parameter from PAD_CFG_DW1 to the macro
