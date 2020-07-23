@@ -3,157 +3,149 @@ package cb
 import "../../common"
 import "../../config"
 
-type fields struct {}
+type FieldMacros struct {}
 
-// DecodeDW0 - decode value of DW0 register
-func (fields) DecodeDW0(macro *common.Macro) {
-	dw0 := macro.Register(common.PAD_CFG_DW0)
+// field - data structure for creating a new bitfield macro object
+// PAD_FUNC(NF3)
+// prefix       : PAD_FUNC
+// name         : NF3; this value will be overridden if the configurator is used
+// unhide       : conditions for hiding macros
+// configurator : method for determining the current configuration of the bit field
+type field struct {
+	prefix       string
+	name         string
+	unhide       bool
+	configurator func()
+}
 
-	irqroute := func(prefix string) {
-		macro.Or().Add("PAD_IRQ_ROUTE(").Add(prefix).Add(")")
-	}
-
-	somebits := func(prefix string) {
-		macro.Or().Add(prefix)
-	}
-
-	for _, field := range []struct {
-		prefix   string
-		getvalue func() uint8
-		generate func(prefix string)
-	} {
-		{	// PAD_FUNC(NF3)
-			"PAD_FUNC",
-			func() uint8 {
-				if dw0.GetPadMode() != 0 || config.InfoLevelGet() <= 3 {
-					return 1
-				}
-				return 0
-			},
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").Padfn().Add(")")
-			},
-		},
-		{	// PAD_RESET(DEEP)
-			"PAD_RESET",
-			dw0.GetResetConfig,
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").Rstsrc().Add(")")
-			},
-		},
-		{	// PAD_TRIG(OFF)
-			"PAD_TRIG",
-			dw0.GetRXLevelEdgeConfiguration,
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").Trig().Add(")")
-			},
-		},
-		{	// PAD_IRQ_ROUTE(IOAPIC)
-			"IOAPIC",
-			dw0.GetGPIOInputRouteIOxAPIC,
-			irqroute,
-		},
-		{	// PAD_IRQ_ROUTE(SCI)
-			"SCI",
-			dw0.GetGPIOInputRouteSCI,
-			irqroute,
-		},
-		{	// PAD_IRQ_ROUTE(SMI)
-			"SMI",
-			dw0.GetGPIOInputRouteSMI,
-			irqroute,
-		},
-		{	// PAD_IRQ_ROUTE(NMI)
-			"NMI",
-			dw0.GetGPIOInputRouteNMI,
-			irqroute,
-		},
-		{	// PAD_RX_POL(EDGE_SINGLE)
-			"PAD_RX_POL",
-			dw0.GetRxInvert,
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").Invert().Add(")")
-			},
-		},
-		{	// PAD_BUF(TX_RX_DISABLE)
-			"PAD_BUF",
-			dw0.GetGPIORxTxDisableStatus,
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").Bufdis().Add(")")
-			},
-		},
-		{	// (1 << 29)
-			"(1 << 29)",
-			dw0.GetRXPadStateSelect,
-			somebits,
-		},
-		{	// (1 << 28)
-			"(1 << 28)",
-			dw0.GetRXRawOverrideStatus,
-			somebits,
-		},
-		{	// 1
-			"1",
-			dw0.GetGPIOTXState,
-			somebits,
-		},
-	} {
-		if field.getvalue() != 0 {
-			field.generate(field.prefix)
+// generate - wrapper for generating bitfield macros string
+// fileds : field structure
+func generate(macro *common.Macro, fileds ...*field) {
+	for _, field := range fileds {
+		if field.unhide {
+			macro.Or()
+			if field.prefix != "" {
+				macro.Add(field.prefix).Add("(")
+			}
+			if field.name != "" {
+				macro.Add(field.name)
+			} else if field.configurator != nil {
+				field.configurator()
+			}
+			if field.prefix != "" {
+				macro.Add(")")
+			}
 		}
 	}
 }
 
+// DecodeDW0 - decode value of DW0 register
+func (FieldMacros) DecodeDW0(macro *common.Macro) {
+	dw0 := macro.Register(common.PAD_CFG_DW0)
+	generate(macro,
+		&field {
+			prefix : "PAD_FUNC",
+			unhide : config.InfoLevelGet() <= 3 || dw0.GetPadMode() != 0,
+			configurator : func() { macro.Padfn() },
+		},
+
+		&field {
+			prefix : "PAD_RESET",
+			unhide : dw0.GetResetConfig() != 0,
+			configurator : func() { macro.Rstsrc() },
+		},
+
+		&field {
+			prefix : "PAD_TRIG",
+			unhide : dw0.GetRXLevelEdgeConfiguration() != 0,
+			configurator : func() { macro.Trig() },
+		},
+
+		&field {
+			prefix : "PAD_IRQ_ROUTE",
+			name   : "IOAPIC",
+			unhide : dw0.GetGPIOInputRouteIOxAPIC() != 0,
+		},
+
+		&field {
+			prefix : "PAD_IRQ_ROUTE",
+			name   : "SCI",
+			unhide : dw0.GetGPIOInputRouteSCI() != 0,
+		},
+
+		&field {
+			prefix : "PAD_IRQ_ROUTE",
+			name   : "SMI",
+			unhide : dw0.GetGPIOInputRouteSMI() != 0,
+		},
+
+		&field {
+			prefix : "PAD_IRQ_ROUTE",
+			name   : "NMI",
+			unhide : dw0.GetGPIOInputRouteNMI() != 0,
+		},
+
+		&field {
+			prefix : "PAD_RX_POL",
+			unhide : dw0.GetRxInvert() != 0,
+			configurator : func() { macro.Invert() },
+		},
+
+		&field {
+			prefix : "PAD_BUF",
+			unhide : dw0.GetGPIORxTxDisableStatus() != 0,
+			configurator : func() { macro.Bufdis() },
+		},
+
+		&field {
+			name   : "(1 << 29)",
+			unhide : dw0.GetRXPadStateSelect() != 0,
+		},
+
+		&field {
+			name   : "(1 << 28)",
+			unhide : dw0.GetRXRawOverrideStatus() != 0,
+		},
+
+		&field {
+			name   : "1",
+			unhide : dw0.GetGPIOTXState() != 0,
+		},
+	)
+}
+
 // DecodeDW1 - decode value of DW1 register
-func (fields) DecodeDW1(macro *common.Macro) {
+func (FieldMacros) DecodeDW1(macro *common.Macro) {
 	dw1 := macro.Register(common.PAD_CFG_DW1)
-	for _, field := range []struct {
-		prefix   string
-		getvalue func() uint8
-		generate func(prefix string)
-	} {
-		{	// PAD_PULL(NONE)
-			"PAD_PULL",
-			dw1.GetTermination,
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").Pull().Add(")")
-			},
+	generate(macro,
+		&field {
+			prefix : "PAD_PULL",
+			unhide : dw1.GetTermination() != 0,
+			configurator : func() { macro.Pull() },
 		},
-		{	// PAD_IOSSTATE(HIZCRx0)
-			"PAD_IOSSTATE",
-			dw1.GetIOStandbyState,
-			func(prefix string) {
-				macro.Or().Add(prefix).Add("(").IOSstate().Add(")")
-			},
+
+		&field {
+			prefix : "PAD_IOSSTATE",
+			unhide : dw1.GetIOStandbyState() != 0,
+			configurator : func() { macro.IOSstate() },
 		},
-		{	// PAD_IOSTERM(ENPU)
-			"PAD_IOSTERM",
-			dw1.GetIOStandbyTermination,
-			func(prefix string)  {
-				macro.Or().Add(prefix).Add("(").IOTerm().Add(")")
-			},
+
+		&field {
+			prefix : "PAD_IOSTERM",
+			unhide : dw1.GetIOStandbyTermination() != 0,
+			configurator : func() { macro.IOTerm() },
 		},
-		{	// PAD_CFG_OWN_GPIO(DRIVER)
-			"PAD_CFG_OWN_GPIO",
-			func() uint8 {
-				if macro.IsOwnershipDriver() {
-					return 1
-				}
-				return 0
-			},
-			func(prefix string)  {
-				macro.Or().Add(prefix).Add("(").Own().Add(")")
-			},
+
+		&field {
+			prefix : "PAD_CFG_OWN_GPIO",
+			unhide : macro.IsOwnershipDriver(),
+			configurator : func() { macro.Own() },
 		},
-	} {
-		if field.getvalue() != 0 {
-			field.generate(field.prefix)
-		}
-	}
+	)
 }
 
 // SetFieldsIface - set the interface for decoding configuration
 // registers DW0 and DW1.
 func SetFieldsIface(macro *common.Macro) {
-	macro.Fields = fields{}
+	macro.Fields = FieldMacros{}
 }
