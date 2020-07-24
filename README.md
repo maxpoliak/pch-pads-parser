@@ -5,13 +5,13 @@ This utility allows to convert the configuration DW0/1 registers value
 from [inteltool] dump to [coreboot] macros.
 
 ```bash
-(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.3
+(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.4
 (shell)$ make
 (shell)$ ./intelp2m -h
 (shell)$ ./intelp2m -file /path/to/inteltool.log
 ```
 
-To generate the gpio.c with -fld=raw DW0/1 register values you need to use
+To generate the gpio.c with raw DW0/1 register values you need to use
 the -fld=raw option:
 
 ```bash
