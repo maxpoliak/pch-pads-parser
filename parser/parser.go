@@ -56,15 +56,6 @@ func (info *padInfo) reservedFprint() {
 	info.generate(0, "\t/* %s - %s */\n", info.id, info.function)
 }
 
-// padInfoRawFprint - print information about current pad to file using
-// raw format:
-// _PAD_CFG_STRUCT(GPP_F1, 0x84000502, 0x00003026), /* SATAXPCIE4 */
-func (info *padInfo) padInfoRawFprint() {
-	if info.ownership == 1 { info.dw1 |= 0x00000010 }
-	info.generate(0, "\t_PAD_CFG_STRUCT(%s, 0x%0.8x, 0x%0.8x),\t/* %s */\n",
-		info.id, info.dw0, info.dw1, info.function)
-}
-
 // padInfoMacroFprint - print information about current pad to file using
 // special macros:
 // PAD_CFG_NF(GPP_F1, 20K_PU, PLTRST, NF1), /* SATAXPCIE4 */
@@ -158,12 +149,8 @@ func (parser *ParserData) PadMapFprint() {
 		case 0xffffffff:
 			pad.reservedFprint()
 		default:
-			if config.IsRawFormatUsed() {
-				pad.padInfoRawFprint()
-			} else {
-				macro := parser.platform.GenMacro(pad.id, pad.dw0, pad.dw1, pad.ownership)
-				pad.padInfoMacroFprint(macro)
-			}
+			str := parser.platform.GenMacro(pad.id, pad.dw0, pad.dw1, pad.ownership)
+			pad.padInfoMacroFprint(str)
 		}
 	}
 }

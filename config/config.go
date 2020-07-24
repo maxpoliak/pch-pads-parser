@@ -61,22 +61,6 @@ func IsPlatformLewisburg() bool {
 var InputRegDumpFile *os.File = nil
 var OutputGenFile *os.File = nil
 
-var useRawFormat bool = false
-func RawFormatFlagSet(flag bool) {
-	useRawFormat = flag
-}
-func IsRawFormatUsed() bool {
-	return useRawFormat
-}
-
-var useCorebootFiledsFlag bool = false
-func CorebootFiledsFormatSet(flag bool) {
-	useCorebootFiledsFlag = flag
-}
-func IsCorebootFiledsFormatUsed() bool {
-	return useCorebootFiledsFlag
-}
-
 var ignoredFieldsFormat bool = false
 func IgnoredFieldsFlagSet(flag bool) {
 	ignoredFieldsFormat = flag
@@ -101,10 +85,37 @@ func InfoLevelGet() uint8 {
 	return infolevel
 }
 
-var fspStyleUsed bool = false
-func FspStyleMacroUsed(flag bool) {
-	fspStyleUsed = flag
+var fldstyle uint8 = CorebootFlds
+const (
+	NoFlds       uint8  = 0
+	CorebootFlds uint8  = 1
+	FspFlds      uint8  = 2
+	RawFlds      uint8  = 3
+)
+var fldstylemap = map[string]uint8{
+	"none" : NoFlds,
+	"cb"   : CorebootFlds,
+	"fsp"  : FspFlds,
+	"raw"  : RawFlds}
+func FldStyleSet(name string) int {
+	if style, valid := fldstylemap[name]; valid {
+		fldstyle = style
+		return 0
+	}
+	return -1
+}
+func FldStyleGet() uint8 {
+	return fldstyle
+}
+func IsFieldsMacroUsed() bool {
+	return FldStyleGet() != NoFlds
+}
+func IsCorebootStyleMacro() bool {
+	return FldStyleGet() == CorebootFlds
 }
 func IsFspStyleMacro() bool {
-	return fspStyleUsed
+	return FldStyleGet() == FspFlds
+}
+func IsRawFields() bool {
+	return FldStyleGet() == RawFlds
 }

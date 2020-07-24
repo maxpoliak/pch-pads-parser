@@ -11,11 +11,18 @@ from [inteltool] dump to [coreboot] macros.
 (shell)$ ./intelp2m -file /path/to/inteltool.log
 ```
 
-To generate the gpio.c with raw DW0/1 register values you need to use
-the -raw option:
+To generate the gpio.c with -fld=raw DW0/1 register values you need to use
+the -fld=raw option:
 
 ```bash
-  (shell)$ ./intelp2m -raw -file /path/to/inteltool.log
+  (shell)$ ./intelp2m -fld raw -file /path/to/inteltool.log
+```
+
+```c
+/* GPP_A10 - CLKOUT_LPC1 DW0: 0x44000500, DW1: 0x00000000 */
+/* PAD_CFG_NF(GPP_A10, NONE, DEEP, NF1), */
+/* DW0 : 0x04000100 - IGNORED */
+_PAD_CFG_STRUCT(GPP_A10, 0x44000500, 0x00000000),
 ```
 
 Test:
@@ -58,14 +65,14 @@ platform type is set using the -p option (Sunrise by default):
 
 ![][pckgs]
 
-[pckgs]: config/packages.png
+[pckgs]: config/gopackages.png
 
 ### Bit fields in macros
 
-Use the -fld option to only generate a sequence of bit fields in a new macro:
+Use the -fld=cb option to only generate a sequence of bit fields in a new macro:
 
 ```bash
-(shell)$./intelp2m -fld -p apl -file ../apollo-inteltool.log
+(shell)$./intelp2m -fld cb -p apl -file ../apollo-inteltool.log
 ```
 
 ```c
@@ -145,7 +152,7 @@ Utilities can generate the _PAD_CFG_STRUCT macro and exclude fields
 from it that are not in the corresponding PAD_CFG_*() macro:
 
 ```bash
-(shell)$./intelp2m -iiii -fld -ign -file /path/to/inteltool.log
+(shell)$./intelp2m -iiii -fld cb -ign -file /path/to/inteltool.log
 ```
 
 ```c

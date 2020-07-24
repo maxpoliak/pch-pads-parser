@@ -41,18 +41,6 @@ func main() {
 		"generate/gpio.h",
 		"the path to the generated file with GPIO configuration\n")
 
-	rawFlag := flag.Bool("raw",
-		false,
-		"generate macros with raw values of registers DW0, DW1\n")
-
-	fldFlag := flag.Bool("fld",
-		false,
-		"generate a sequence of bitfield macros in coreboot style\n")
-
-	fspFlag := flag.Bool("fsp",
-		false,
-		"generate a sequence of bitfield macros in fsp/edk2 style\n")
-
 	ignFlag := flag.Bool("ign",
 		false,
 		"exclude fields that should be ignored from advanced macros\n")
@@ -66,40 +54,42 @@ func main() {
 	infoLevel1 := flag.Bool("i",
 		false,
 		"\n\tInfo Level 1: adds DW0/DW1 value to the comments:\n" +
-		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n")
+		"\t/* GPIO_173 - SDCARD_D0 */\n")
 
 	infoLevel2 := flag.Bool("ii",
 		false,
 		"Info Level 2: adds original macro to the comments:\n" +
-		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
-		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n")
+		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n")
 
 	infoLevel3 := flag.Bool("iii",
 		false,
 		"Info Level 3: adds information about bit fields that (need to be ignored)\n" +
 		"\twere ignored to generate a macro:\n" +
 		"\t/* GPIO_173 - SDCARD_D0 (DW0: 0x44000400, DW1: 0x00021000) */\n" +
-		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n" +
-		"\t/* (!) NEED TO IGNORE THESE FIELDS: 0x04000000 */\n")
+		"\t/* PAD_CFG_NF_IOSSTATE(GPIO_173, DN_20K, DEEP, NF1, HIZCRx1), */\n")
 
 	infoLevel4 := flag.Bool("iiii",
 		false,
 		"Info Level 4: show decoded DW0/DW1 register:\n" +
-		"\t/* DW0: PAD_TRIG(DEEP) | PAD_BUF(TX_RX_DISABLE) FIELD IS IGNORED */\n")
+		"\t/* DW0: PAD_TRIG(DEEP) | PAD_BUF(TX_RX_DISABLE) - IGNORED */\n")
 
 	template := flag.Int("t", 0, "template type number\n"+
 		"\t0 - inteltool.log (default)\n"+
 		"\t1 - gpio.h\n"+
 		"\t2 - your template\n\t")
 
-	platform :=  flag.String("p", "snr", "set up a platform\n"+
+	platform :=  flag.String("p", "snr", "set platform:\n"+
 		"\tsnr - Sunrise PCH or Skylake/Kaby Lake SoC\n"+
 		"\tlbg - Lewisburg PCH with Xeon SP\n"+
 		"\tapl - Apollo Lake SoC\n")
 
+	filedstyle :=  flag.String("fld", "none", "set fileds macros style:\n"+
+		"\tcb  - use coreboot style for bit fields macros\n"+
+		"\tfsp - use fsp style\n"+
+		"\traw - do not convert, print as is\n")
+
 	flag.Parse()
 
-	config.RawFormatFlagSet(*rawFlag)
 	config.IgnoredFieldsFlagSet(*ignFlag)
 	config.NonCheckingFlagSet(*nonCheckFlag)
 
@@ -119,7 +109,7 @@ func main() {
 	}
 
 	if valid := config.PlatformSet(*platform); valid != 0 {
-		fmt.Printf("Error: invalid platform!\n")
+		fmt.Printf("Error: invalid platform -%s!\n", *platform)
 		os.Exit(1)
 	}
 
@@ -132,15 +122,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *fspFlag && *fldFlag {
-		fmt.Printf("These options are not used together. You should choose:\n" +
-		"\t-fsp: use fsp/edk2 style for advanced macros\n" +
-		"\t-adv: use coreboot style for advanced macros\n")
-		os.Exit(0)
+	if config.FldStyleSet(*filedstyle) != 0 {
+		fmt.Printf("Error! Unknown bit fields style option -%s!\n", *filedstyle)
+		os.Exit(1)
 	}
-
-	config.CorebootFiledsFormatSet(*fldFlag)
-	config.FspStyleMacroUsed(*fspFlag)
 
 	// create dir for output files
 	err = os.MkdirAll("generate", os.ModePerm)

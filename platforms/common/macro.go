@@ -403,7 +403,7 @@ func (macro *Macro) Generate() string {
 		macro.Platform.NativeFunctionMacroAdd()
 	}
 
-	if config.IsCorebootFiledsFormatUsed() || config.IsFspStyleMacro() {
+	if config.IsFieldsMacroUsed() {
 		// Clear control mask to generate advanced macro only
 		return macro.GenerateFields().Get()
 	}

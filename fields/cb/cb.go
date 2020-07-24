@@ -150,6 +150,7 @@ func (FieldMacros) DecodeDW1() {
 	)
 }
 
+// GenerateString - generates the entire string of bitfield macros.
 func (bitfields FieldMacros) GenerateString() {
 	macro := common.GetMacro()
 	macro.Add("_PAD_CFG_STRUCT(").Id().Add(", ")

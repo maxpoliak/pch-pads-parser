@@ -5,13 +5,16 @@ import "../platforms/common"
 
 import "./fsp"
 import "./cb"
+import "./raw"
 
 // InterfaceSet - set the interface for decoding configuration
 // registers DW0 and DW1.
 func InterfaceGet() common.Fields {
-	if config.IsFspStyleMacro() {
-		return fsp.FieldMacros{}
-	} else {
-		return cb.FieldMacros{}
+	var fldstylemap = map[uint8]common.Fields{
+		config.NoFlds       : cb.FieldMacros{}, // analyze fields using cb macros
+		config.CorebootFlds : cb.FieldMacros{},
+		config.FspFlds      : fsp.FieldMacros{},
+		config.RawFlds      : raw.FieldMacros{},
 	}
+	return fldstylemap[config.FldStyleGet()]
 }
