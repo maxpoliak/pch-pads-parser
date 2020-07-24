@@ -1,7 +1,7 @@
 package cb
 
-import "../../common"
 import "../../config"
+import "../../platforms/common"
 
 type FieldMacros struct {}
 

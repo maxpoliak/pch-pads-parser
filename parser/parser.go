@@ -7,8 +7,8 @@ import (
 	"strconv"
 )
 
-import "../sunrise"
-import "../apollo"
+import "../platforms/snr"
+import "../platforms/apl"
 import "../config"
 
 // PlatformSpecific - platform-specific interface
@@ -143,9 +143,9 @@ func (parser *ParserData) communityGroupExtract() {
 // in the configuration
 func (parser *ParserData) PlatformSpecificInterfaceSet() {
 	if config.IsPlatformSunrise() || config.IsPlatformLewisburg() {
-		parser.platform = sunrise.PlatformSpecific{}
+		parser.platform = snr.PlatformSpecific{}
 	} else if config.IsPlatformApollo() {
-		parser.platform = apollo.PlatformSpecific{}
+		parser.platform = apl.PlatformSpecific{}
 	}
 }
 

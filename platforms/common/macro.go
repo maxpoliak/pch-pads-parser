@@ -3,7 +3,7 @@ package common
 import "strconv"
 import "sync"
 
-import "../config"
+import "../../config"
 
 type Fields interface {
 	DecodeDW0()

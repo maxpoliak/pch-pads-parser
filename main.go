@@ -1,10 +1,8 @@
 package main
 
-import (
-	"flag"
-	"fmt"
-	"os"
-)
+import "flag"
+import "fmt"
+import "os"
 
 import "./parser"
 import "./config"

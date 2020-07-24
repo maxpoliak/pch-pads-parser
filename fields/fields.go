@@ -1,7 +1,7 @@
 package fields
 
 import "../config"
-import "../common"
+import "../platforms/common"
 
 import "./fsp"
 import "./cb"

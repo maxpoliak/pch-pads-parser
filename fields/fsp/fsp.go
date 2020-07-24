@@ -1,6 +1,6 @@
 package fsp
 
-import "../../common"
+import "../../platforms/common"
 
 type FieldMacros struct {}
 
