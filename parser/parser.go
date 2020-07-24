@@ -8,6 +8,7 @@ import (
 )
 
 import "../platforms/snr"
+import "../platforms/lbg"
 import "../platforms/apl"
 import "../config"
 
@@ -133,11 +134,15 @@ func (parser *ParserData) communityGroupExtract() {
 // PlatformSpecificInterfaceSet - specific interface for the platform selected
 // in the configuration
 func (parser *ParserData) PlatformSpecificInterfaceSet() {
-	if config.IsPlatformSunrise() || config.IsPlatformLewisburg() {
-		parser.platform = snr.PlatformSpecific{}
-	} else if config.IsPlatformApollo() {
-		parser.platform = apl.PlatformSpecific{}
+	var platform = map[uint8]PlatformSpecific {
+		config.SunriseType   : snr.PlatformSpecific{},
+		// See platforms/lbg/macro.go
+		config.LewisburgType : lbg.PlatformSpecific{
+			InheritanceTemplate : snr.PlatformSpecific{},
+		},
+		config.ApolloType    : apl.PlatformSpecific{},
 	}
+	parser.platform = platform[config.PlatformGet()]
 }
 
 // PadMapFprint - print pad info map to file

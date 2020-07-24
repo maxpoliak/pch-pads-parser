@@ -28,7 +28,7 @@ func (PlatformSpecific) RemmapRstSrc() {
 		// Use reset source remapping only if the input file is inteltool.log dump
 		return
 	}
-	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
+	if strings.Contains(macro.PadIdGet(), "GPD") {
 		// See reset map for the Sunrise GPD Group in the Community 2:
 		// https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
 		// remmap is not required because it is the same as common.
