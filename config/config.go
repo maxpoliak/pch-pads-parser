@@ -69,12 +69,12 @@ func IsRawFormatUsed() bool {
 	return useRawFormat
 }
 
-var useAdvancedFormat bool = false
-func AdvancedFormatFlagSet(flag bool) {
-	useAdvancedFormat = flag
+var useCorebootFiledsFlag bool = false
+func CorebootFiledsFormatSet(flag bool) {
+	useCorebootFiledsFlag = flag
 }
-func IsAdvancedFormatUsed() bool {
-	return useAdvancedFormat
+func IsCorebootFiledsFormatUsed() bool {
+	return useCorebootFiledsFlag
 }
 
 var ignoredFieldsFormat bool = false
@@ -99,4 +99,12 @@ func InfoLevelSet(lvl uint8) {
 }
 func InfoLevelGet() uint8 {
 	return infolevel
+}
+
+var fspStyleUsed bool = false
+func FspStyleMacroUsed(flag bool) {
+	fspStyleUsed = flag
+}
+func IsFspStyleMacro() bool {
+	return fspStyleUsed
 }
