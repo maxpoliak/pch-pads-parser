@@ -1,8 +1,6 @@
-package apollo
+package apl
 
-import (
-	"strings"
-)
+import "strings"
 
 // GroupNameExtract - This function extracts the group ID, if it exists in a row
 // line      : string from the configuration file

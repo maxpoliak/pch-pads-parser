@@ -5,17 +5,24 @@ This utility allows to convert the configuration DW0/1 registers value
 from [inteltool] dump to [coreboot] macros.
 
 ```bash
-(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.3
+(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.4
 (shell)$ make
 (shell)$ ./intelp2m -h
 (shell)$ ./intelp2m -file /path/to/inteltool.log
 ```
 
 To generate the gpio.c with raw DW0/1 register values you need to use
-the -raw option:
+the -fld=raw option:
 
 ```bash
-  (shell)$ ./intelp2m -raw -file /path/to/inteltool.log
+  (shell)$ ./intelp2m -fld raw -file /path/to/inteltool.log
+```
+
+```c
+/* GPP_A10 - CLKOUT_LPC1 DW0: 0x44000500, DW1: 0x00000000 */
+/* PAD_CFG_NF(GPP_A10, NONE, DEEP, NF1), */
+/* DW0 : 0x04000100 - IGNORED */
+_PAD_CFG_STRUCT(GPP_A10, 0x44000500, 0x00000000),
 ```
 
 Test:
@@ -54,20 +61,43 @@ platform type is set using the -p option (Sunrise by default):
 (shell)$./intelp2m -p <platform> -file path/to/inteltool.log
 ```
 
-Use the -adv option to only generate advanced macros:
+### Packages
+
+![][pckgs]
+
+[pckgs]: config/gopackages.png
+
+### Bit fields in macros
+
+Use the -fld=cb option to only generate a sequence of bit fields in a new macro:
 
 ```bash
-(shell)$./intelp2m -adv -p apl -file ../apollo-inteltool.log
+(shell)$./intelp2m -fld cb -p apl -file ../apollo-inteltool.log
 ```
 
 ```c
 _PAD_CFG_STRUCT(GPIO_37, PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF), PAD_PULL(DN_20K)), /* LPSS_UART0_TXD */
 ```
+
+### FSP-style macro
+
+The utility allows to generate macros that include fsp/edk2-palforms/slimbootloader-style bitfields:
+
+```c
+{ GPIO_SKL_H_GPP_A12, { GpioPadModeGpio, GpioHostOwnAcpi, GpioDirInInvOut, GpioOutLow, GpioIntSci | GpioIntLvlEdgDis, GpioResetNormal, GpioTermNone,  GpioPadConfigLock },	/* GPIO */
+```
+
+To do this, use the -fsp option on the command line:
+
+```bash
+(shell)$./intelp2m -fsp -p apl -file ../apollo-inteltool.log
+```
+
 ### Macro Check
 
 After generating the macro, the utility checks all used
 fields of the configuration registers. If some field has been
-ignored, the utility generates advanced macros. To not check
+ignored, the utility generates field macros. To not check
 macros, use the -n option:
 
 ```bash
@@ -118,12 +148,11 @@ DW0 : PAD_TRIG(OFF) - IGNORED
 
 ### Ignoring Fields
 
-Utilities can generate the _PAD_CFG_STRUCT advanced macro and
-exclude fields from it that are not in the corresponding PAD_CFG_*()
-macro:
+Utilities can generate the _PAD_CFG_STRUCT macro and exclude fields
+from it that are not in the corresponding PAD_CFG_*() macro:
 
 ```bash
-(shell)$./intelp2m -iiii -adv -ign -file /path/to/inteltool.log
+(shell)$./intelp2m -iiii -fld cb -ign -file /path/to/inteltool.log
 ```
 
 ```c

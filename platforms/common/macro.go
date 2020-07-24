@@ -1,7 +1,15 @@
 package common
 
 import "strconv"
-import "../config"
+import "sync"
+
+import "../../config"
+
+type Fields interface {
+	DecodeDW0()
+	DecodeDW1()
+	GenerateString()
+}
 
 const (
 	PAD_OWN_ACPI   = 0
@@ -30,24 +38,27 @@ const (
 )
 
 const (
-	RST_DEEP   = 1
-)
-
-const (
 	TRIG_LEVEL       = 0
 	TRIG_EDGE_SINGLE = 1
 	TRIG_OFF         = 2
 	TRIG_EDGE_BOTH   = 3
 )
 
+const (
+	RST_PWROK  = 0
+	RST_DEEP   = 1
+	RST_PLTRST = 2
+	RST_RSMRST = 3
+)
+
 // PlatformSpecific - platform-specific interface
 type PlatformSpecific interface {
-	Rstsrc(macro *Macro)
-	Pull(macro *Macro)
-	GpiMacroAdd(macro *Macro)
-	GpoMacroAdd(macro *Macro)
-	NativeFunctionMacroAdd(macro *Macro)
-	NoConnMacroAdd(macro *Macro)
+	RemmapRstSrc()
+	Pull()
+	GpiMacroAdd()
+	GpoMacroAdd()
+	NativeFunctionMacroAdd()
+	NoConnMacroAdd()
 }
 
 // Macro - contains macro information and methods
@@ -61,6 +72,22 @@ type Macro struct {
 	padID     string
 	str       string
 	ownership uint8
+	Fields
+}
+
+var	instanceMacro *Macro
+var	once           sync.Once
+
+// GetInstance returns singleton
+func GetInstanceMacro(p PlatformSpecific, f Fields) *Macro {
+	once.Do(func() {
+		instanceMacro = &Macro{ Platform : p, Fields : f }
+	})
+	return instanceMacro
+}
+
+func GetMacro() *Macro {
+	return GetInstanceMacro(nil, nil)
 }
 
 func (macro *Macro) PadIdGet() string {
@@ -104,6 +131,12 @@ func (macro *Macro) Get() string {
 	return macro.str
 }
 
+// set a string in a macro instead of its previous contents
+func (macro *Macro) Clear() *Macro {
+	macro.Set("")
+	return macro
+}
+
 // Adds PAD Id to the macro as a new argument
 // return: Macro
 func (macro *Macro) Id() *Macro {
@@ -123,14 +156,20 @@ func (macro *Macro) Separator() *Macro {
 // Adds the PADRSTCFG parameter from DW0 to the macro as a new argument
 // return: Macro
 func (macro *Macro) Rstsrc() *Macro {
-	macro.Platform.Rstsrc(macro)
-	return macro
+	dw0 := macro.Register(PAD_CFG_DW0)
+	var resetsrc = map[uint8]string {
+		0: "PWROK",
+		1: "DEEP",
+		2: "PLTRST",
+		3: "RSMRST",
+	}
+	return macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 }
 
 // Adds The Pad Termination (TERM) parameter from DW1 to the macro as a new argument
 // return: Macro
 func (macro *Macro) Pull() *Macro {
-	macro.Platform.Pull(macro)
+	macro.Platform.Pull()
 	return macro
 }
 
@@ -239,13 +278,13 @@ func (macro *Macro) IOTerm() *Macro {
 // Check created macro
 func (macro *Macro) check() *Macro {
 	if !macro.Register(PAD_CFG_DW0).MaskCheck() {
-		return macro.Advanced()
+		return macro.GenerateFields()
 	}
 	return macro
 }
 
 // or - Set " | " if its needed
-func (macro *Macro) or() *Macro {
+func (macro *Macro) Or() *Macro {
 
 		if str := macro.Get(); str[len(str) - 1] == ')' {
 			macro.Add(" | ")
@@ -253,172 +292,10 @@ func (macro *Macro) or() *Macro {
 		return macro
 }
 
-// dw0Decode - decode value of DW0 register
-func (macro *Macro) dw0Decode() *Macro {
-	dw0 := macro.Register(PAD_CFG_DW0)
-
-	irqroute := func(macro *Macro, name string) {
-		macro.or().Add("PAD_IRQ_ROUTE(").Add(name).Add(")")
-	}
-
-	somebits := func(macro *Macro, name string) {
-		macro.or().Add(name)
-	}
-
-	for _, field := range []struct {
-		name   string
-		getvalue func() uint8
-		generate func(macro *Macro, name string)
-	} {
-		{	// PAD_FUNC(NF3)
-			"PAD_FUNC",
-			func() uint8 {
-				if dw0.GetPadMode() != 0 || config.InfoLevelGet() <= 3 {
-					return 1
-				}
-				return 0
-			},
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Padfn().Add(")")
-			},
-		},
-
-		{	// PAD_RESET(DEEP)
-			"PAD_RESET",
-			dw0.GetResetConfig,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Rstsrc().Add(")")
-			},
-		},
-
-		{	// PAD_TRIG(OFF)
-			"PAD_TRIG",
-			dw0.GetRXLevelEdgeConfiguration,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Trig().Add(")")
-			},
-		},
-
-		{	// PAD_IRQ_ROUTE(IOAPIC)
-			"IOAPIC",
-			dw0.GetGPIOInputRouteIOxAPIC,
-			irqroute,
-		},
-
-		{	// PAD_IRQ_ROUTE(SCI)
-			"SCI",
-			dw0.GetGPIOInputRouteSCI,
-			irqroute,
-		},
-
-		{	// PAD_IRQ_ROUTE(SMI)
-			"SMI",
-			dw0.GetGPIOInputRouteSMI,
-			irqroute,
-		},
-
-		{	// PAD_IRQ_ROUTE(NMI)
-			"NMI",
-			dw0.GetGPIOInputRouteNMI,
-			irqroute,
-		},
-
-		{	// PAD_RX_POL(EDGE_SINGLE)
-			"PAD_RX_POL",
-			dw0.GetRxInvert,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Invert().Add(")")
-			},
-		},
-
-		{	// PAD_BUF(TX_RX_DISABLE)
-			"PAD_BUF",
-			dw0.GetGPIORxTxDisableStatus,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Bufdis().Add(")")
-			},
-		},
-
-		{	// (1 << 29)
-			"(1 << 29)",
-			dw0.GetRXPadStateSelect,
-			somebits,
-		},
-
-		{	// (1 << 28)
-			"(1 << 28)",
-			dw0.GetRXRawOverrideStatus,
-			somebits,
-		},
-
-		{	// 1
-			"1",
-			dw0.GetGPIOTXState,
-			somebits,
-		},
-	} {
-		if field.getvalue() != 0 {
-			field.generate(macro, field.name)
-		}
-	}
-	return macro
-}
-
-// dw1Decode - decode value of DW1 register
-func (macro *Macro) dw1Decode() *Macro {
-	dw1 := macro.Register(PAD_CFG_DW1)
-	for _, field := range []struct {
-		name   string
-		getvalue func() uint8
-		generate func(macro *Macro, name string)
-	} {
-		// PAD_PULL(DN_20K)
-		{
-			"PAD_PULL",
-			dw1.GetTermination,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").Pull().Add(")")
-			},
-		},
-
-		// PAD_IOSSTATE(HIZCRx0)
-		{
-			"PAD_IOSSTATE",
-			dw1.GetIOStandbyState,
-			func(macro *Macro, name string) {
-				macro.or().Add(name).Add("(").IOSstate().Add(")")
-			},
-		},
-
-		// PAD_IOSTERM(ENPU)
-		{
-			"PAD_IOSTERM",
-			dw1.GetIOStandbyTermination,
-			func(macro *Macro, name string)  {
-				macro.or().Add(name).Add("(").IOTerm().Add(")")
-			},
-		},
-
-		// PAD_CFG_OWN_GPIO(DRIVER)
-		{
-			"PAD_CFG_OWN_GPIO",
-			func() uint8 { return macro.ownership },
-			func(macro *Macro, name string)  {
-				macro.or().Add(name).Add("(").Own().Add(")")
-			},
-		},
-	} {
-		if field.getvalue() != 0 {
-			field.generate(macro, field.name)
-		}
-	}
-	return macro
-}
-
 // AddToMacroIgnoredMask - Print info about ignored field mask
 // title - warning message
 func (macro *Macro) AddToMacroIgnoredMask() *Macro {
-	if config.InfoLevelGet() < 4 {
+	if config.InfoLevelGet() < 4 || config.IsFspStyleMacro() {
 		return macro
 	}
 	dw0 := macro.Register(PAD_CFG_DW0)
@@ -429,20 +306,24 @@ func (macro *Macro) AddToMacroIgnoredMask() *Macro {
 	if dw0Ignored != 0 {
 		dw0temp := dw0.ValueGet()
 		dw0.ValueSet(dw0Ignored)
-		macro.Add("\n\t/* DW0 : ").dw0Decode().Add(" - IGNORED */")
+		macro.Add("\n\t/* DW0 : ")
+		macro.Fields.DecodeDW0()
+		macro.Add(" - IGNORED */")
 		dw0.ValueSet(dw0temp)
 	}
 	if dw1Ignored != 0 {
 		dw1temp	:= dw1.ValueGet()
 		dw1.ValueSet(dw1Ignored)
-		macro.Add("\n\t/* DW1 : ").dw1Decode().Add(" - IGNORED */")
+		macro.Add("\n\t/* DW1 : ")
+		macro.Fields.DecodeDW1()
+		macro.Add(" - IGNORED */")
 		dw1.ValueSet(dw1temp)
 	}
 	return macro
 }
 
-// Generate Advanced Macro
-func (macro *Macro) Advanced() *Macro {
+// GenerateFields - generate bitfield macros
+func (macro *Macro) GenerateFields() *Macro {
 	dw0 := macro.Register(PAD_CFG_DW0)
 	dw1 := macro.Register(PAD_CFG_DW1)
 
@@ -451,16 +332,15 @@ func (macro *Macro) Advanced() *Macro {
 	dw1Ignored := dw1.IgnoredFieldsGet()
 
 	if config.InfoLevelGet() <= 1 {
-		macro.Set("")
+		macro.Clear()
 	} else if config.InfoLevelGet() >= 3 {
 		// Add string of reference macro as a comment
 		reference := macro.Get()
-		macro.Set("/* ").Add(reference).Add(" */")
+		macro.Clear()
+		macro.Add("/* ").Add(reference).Add(" */")
 		macro.AddToMacroIgnoredMask()
 		macro.Add("\n\t")
 	}
-	macro.Add("_PAD_CFG_STRUCT(").Id().Add(",")
-
 	if config.AreFieldsIgnored() {
 		// Consider bit fields that should be ignored when regenerating
 		// advansed macros
@@ -471,12 +351,7 @@ func (macro *Macro) Advanced() *Macro {
 		dw1.ValueSet(tempVal)
 	}
 
-	macro.Add(" ").dw0Decode()
-	if dw1.ValueGet() != 0 {
-		macro.Add(", ").dw1Decode().Add("),")
-	} else {
-		macro.Add(", 0),")
-	}
+	macro.Fields.GenerateString()
 	return macro
 }
 
@@ -505,30 +380,32 @@ const (
 // Gets base string of current macro
 // return: string of macro
 func (macro *Macro) Generate() string {
-	macro.Set("PAD_CFG")
 	dw0 := macro.Register(PAD_CFG_DW0)
+
+	macro.Platform.RemmapRstSrc()
+	macro.Set("PAD_CFG")
 	if dw0.GetPadMode() == 0 {
 		// GPIO
 		switch dw0.GetGPIORxTxDisableStatus() {
 		case txDisable:
-			macro.Platform.GpiMacroAdd(macro) // GPI
+			macro.Platform.GpiMacroAdd() // GPI
 
 		case rxDisable:
-			macro.Platform.GpoMacroAdd(macro) // GPO
+			macro.Platform.GpoMacroAdd() // GPO
 
 		case rxDisable | txDisable:
-			macro.Platform.NoConnMacroAdd(macro) // NC
+			macro.Platform.NoConnMacroAdd() // NC
 
 		default:
 			macro.Bidirection()
 		}
 	} else {
-		macro.Platform.NativeFunctionMacroAdd(macro)
+		macro.Platform.NativeFunctionMacroAdd()
 	}
 
-	if config.IsAdvancedFormatUsed() {
+	if config.IsFieldsMacroUsed() {
 		// Clear control mask to generate advanced macro only
-		return macro.Advanced().Get()
+		return macro.GenerateFields().Get()
 	}
 
 	if config.IsNonCheckingFlagUsed() {

@@ -1,13 +1,12 @@
-package sunrise
+package snr
 
-import (
-	"strings"
-	"fmt"
-)
+import "strings"
+import "fmt"
 
 // Local packages
 import "../common"
-import "../config"
+import "../../config"
+import "../../fields"
 
 const (
 	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe
@@ -22,61 +21,41 @@ const (
 
 type PlatformSpecific struct {}
 
-// Adds the PADRSTCFG parameter from PAD_CFG_DW0 to the macro as a new argument
-func (PlatformSpecific) Rstsrc(macro *common.Macro) {
-	dw0 := macro.Register(PAD_CFG_DW0)
-	var resetsrc = map[uint8]string{
-		0: "PWROK",
-		1: "DEEP",
-		2: "PLTRST",
-		3: "RSMRST",
-	}
-
+// RemmapRstSrc - remmap Pad Reset Source Config 
+func (PlatformSpecific) RemmapRstSrc() {
+	macro := common.GetMacro()
 	if config.TemplateGet() != config.TempInteltool {
 		// Use reset source remapping only if the input file is inteltool.log dump
-		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
 		return
 	}
-
-	if config.IsPlatformSunrise() && strings.Contains(macro.PadIdGet(), "GPD") {
-		// See reset map for the GPD Group in the Community 2:
+	if strings.Contains(macro.PadIdGet(), "GPD") {
+		// See reset map for the Sunrise GPD Group in the Community 2:
 		// https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
-		// static const struct reset_mapping rst_map_com2[] = {
-		// { .logical = PAD_CFG0_LOGICAL_RESET_PWROK,  .chipset = 0U << 30},
-		// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30},
-		// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30},
-		// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 3U << 30},
-		// };
-		macro.Separator().Add(resetsrc[dw0.GetResetConfig()])
+		// remmap is not required because it is the same as common.
 		return
 	}
 
-	// For other pads of the Sunrise Point chipset, as well as for all pads of the Lewisburg
-	// chipset, remapping of the card requires the port reset source value.
-	// See https://github.com/coreboot/coreboot/blob/master/src/soc/intel/skylake/gpio.c#L15
-	// and https://github.com/coreboot/coreboot/blob/master/src/soc/intel/xeon_sp/gpio.c#L16
-	//
-	// static const struct reset_mapping rst_map[] = {
-	// { .logical = PAD_CFG0_LOGICAL_RESET_RSMRST, .chipset = 0U << 30 },
-	// { .logical = PAD_CFG0_LOGICAL_RESET_DEEP,   .chipset = 1U << 30 },
-	// { .logical = PAD_CFG0_LOGICAL_RESET_PLTRST, .chipset = 2U << 30 },
-	// };
-	var remapping = map[uint8]string{
-		0: "RSMRST",
-		1: "DEEP",
-		2: "PLTRST",
+	dw0 := macro.Register(PAD_CFG_DW0)
+	var remapping = map[uint8]uint32{
+		0: common.RST_RSMRST << common.PadRstCfgShift,
+		1: common.RST_DEEP   << common.PadRstCfgShift,
+		2: common.RST_PLTRST << common.PadRstCfgShift,
 	}
-	str, valid := remapping[dw0.GetResetConfig()]
-	if !valid {
-		str = "RESERVED" // from intel doc: 3h = Reserved
-		dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
+	resetsrc, valid := remapping[dw0.GetResetConfig()]
+	if valid {
+		// dw0.SetResetConfig(resetsrc)
+		ResetConfigFieldVal := (dw0.ValueGet() & 0x3fffffff) | remapping[dw0.GetResetConfig()]
+		dw0.ValueSet(ResetConfigFieldVal)
+	} else {
+		fmt.Println("Invalid Pad Reset Config [ 0x", resetsrc ," ] for ", macro.PadIdGet())
 	}
-	macro.Separator().Add(str)
+	dw0.CntrMaskFieldsClear(common.PadRstCfgMask)
 }
 
 // Adds The Pad Termination (TERM) parameter from PAD_CFG_DW1 to the macro
 // as a new argument
-func (PlatformSpecific) Pull(macro *common.Macro) {
+func (PlatformSpecific) Pull() {
+	macro := common.GetMacro()
 	dw1 := macro.Register(PAD_CFG_DW1)
 	var pull = map[uint8]string{
 		0x0: "NONE",
@@ -101,7 +80,8 @@ func (PlatformSpecific) Pull(macro *common.Macro) {
 }
 
 // Generate macro to cause peripheral IRQ when configured in GPIO input mode
-func ioApicRoute(macro *common.Macro) bool {
+func ioApicRoute() bool {
+	macro := common.GetMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteIOxAPIC() == 0 {
 		return false
@@ -124,7 +104,8 @@ func ioApicRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause NMI when configured in GPIO input mode
-func nmiRoute(macro *common.Macro) bool {
+func nmiRoute() bool {
+	macro := common.GetMacro()
 	if macro.Register(PAD_CFG_DW0).GetGPIOInputRouteNMI() == 0 {
 		return false
 	}
@@ -134,7 +115,8 @@ func nmiRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause SCI when configured in GPIO input mode
-func sciRoute(macro *common.Macro) bool {
+func sciRoute() bool {
+	macro := common.GetMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteSCI() == 0 {
 		return false
@@ -155,7 +137,8 @@ func sciRoute(macro *common.Macro) bool {
 }
 
 // Generate macro to cause SMI when configured in GPIO input mode
-func smiRoute(macro *common.Macro) bool {
+func smiRoute() bool {
+	macro := common.GetMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	if dw0.GetGPIOInputRouteSMI() == 0 {
 		return false
@@ -174,17 +157,17 @@ func smiRoute(macro *common.Macro) bool {
 }
 
 // Adds PAD_CFG_GPI macro with arguments
-func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) GpiMacroAdd() {
+	macro := common.GetMacro()
 	var ids []string
-
 	macro.Set("PAD_CFG_GPI")
-	for routeid, isRoute := range map[string]func(macro *common.Macro) (bool) {
+	for routeid, isRoute := range map[string]func() (bool) {
 		"IOAPIC": ioApicRoute,
 		"SCI":    sciRoute,
 		"SMI":    smiRoute,
 		"NMI":    nmiRoute,
 	} {
-		if isRoute(macro) {
+		if isRoute() {
 			ids = append(ids, routeid)
 		}
 	}
@@ -216,7 +199,8 @@ func (PlatformSpecific) GpiMacroAdd(macro *common.Macro) {
 }
 
 // Adds PAD_CFG_GPO macro with arguments
-func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) GpoMacroAdd() {
+	macro := common.GetMacro()
 	dw0 := macro.Register(PAD_CFG_DW0)
 	term := macro.Register(PAD_CFG_DW1).GetTermination()
 
@@ -246,13 +230,15 @@ func (PlatformSpecific) GpoMacroAdd(macro *common.Macro) {
 }
 
 // Adds PAD_CFG_NF macro with arguments
-func (PlatformSpecific) NativeFunctionMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) NativeFunctionMacroAdd() {
+	macro := common.GetMacro()
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
 	macro.Set("PAD_CFG_NF").Add("(").Id().Pull().Rstsrc().Padfn().Add("),")
 }
 
 // Adds PAD_NC macro
-func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
+func (PlatformSpecific) NoConnMacroAdd() {
+	macro := common.GetMacro()
 	// #define PAD_NC(pad, pull)
 	// _PAD_CFG_STRUCT(pad,
 	//     PAD_FUNC(GPIO) | PAD_RESET(DEEP) | PAD_TRIG(OFF) | PAD_BUF(TX_RX_DISABLE),
@@ -277,9 +263,10 @@ func (PlatformSpecific) NoConnMacroAdd(macro *common.Macro) {
 // return: string of macro
 //         error
 func (PlatformSpecific) GenMacro(id string, dw0 uint32, dw1 uint32, ownership uint8) string {
-	var macro common.Macro
-	// use platform-specific interface in Macro struct
-	macro.Platform = PlatformSpecific {}
+	macro := common.GetInstanceMacro(PlatformSpecific{}, fields.InterfaceGet())
+	macro.Clear()
+	macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(common.AllFields)
+	macro.Register(PAD_CFG_DW0).CntrMaskFieldsClear(common.AllFields)
 	macro.PadIdSet(id).SetPadOwnership(ownership)
 	macro.Register(PAD_CFG_DW0).ValueSet(dw0).ReadOnlyFieldsSet(PAD_CFG_DW0_RO_FIELDS)
 	macro.Register(PAD_CFG_DW1).ValueSet(dw1).ReadOnlyFieldsSet(PAD_CFG_DW1_RO_FIELDS)
