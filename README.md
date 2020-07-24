@@ -53,6 +53,13 @@ platform type is set using the -p option (Sunrise by default):
 
 (shell)$./intelp2m -p <platform> -file path/to/inteltool.log
 ```
+
+### Packages
+
+![][pckgs]
+
+[pckgs]: config/packages.png
+
 ### Bit fields in macros
 
 Use the -fld option to only generate a sequence of bit fields in a new macro:
