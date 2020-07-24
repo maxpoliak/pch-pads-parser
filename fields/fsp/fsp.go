@@ -52,6 +52,7 @@ func (FieldMacros) DecodeDW0() {
 				2: "GpioPadModeNative2",
 				3: "GpioPadModeNative3",
 				4: "GpioPadModeNative4",
+				5: "GpioPadModeNative5",
 			},
 			value : dw0.GetPadMode(),
 		},
