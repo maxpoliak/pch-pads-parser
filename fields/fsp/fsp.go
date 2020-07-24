@@ -137,6 +137,14 @@ func (FieldMacros) DecodeDW1() {
 	dw1 := macro.Register(common.PAD_CFG_DW1)
 	generate(
 		&field {
+			override : func(configmap map[uint8]string, value uint8) {
+				if dw1.GetPadTol() != 0 {
+					macro.Add("GpioTolerance1v8 | ")
+				}
+			},
+		},
+
+		&field {
 			configmap : map[uint8]string {
 				0x0: "GpioTermNone",
 				0x2: "GpioTermWpd5K",

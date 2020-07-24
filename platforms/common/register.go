@@ -46,20 +46,6 @@ const (
 	TxStateMask uint32 = 0x1
 )
 
-// Bit field constants for PAD_CFG_DW1 register
-const (
-	IOStandbyStateShift uint8  = 14
-	IOStandbyStateMask  uint32 = 0xF << IOStandbyStateShift
-
-	TermShift uint8  = 10
-	TermMask  uint32 = 0xF << TermShift
-
-	IOStandbyTerminationShift uint8  = 8
-	IOStandbyTerminationMask  uint32 = 0x3 << IOStandbyTerminationShift
-
-	InterruptSelectShift uint32 = 0xFF
-)
-
 // config DW registers
 const (
 	PAD_CFG_DW0 = 0
@@ -214,6 +200,28 @@ func (reg *Register) GetGPIOTXState() uint8 {
 	return reg.getFieldVal(TxStateMask, 0)
 }
 
+// Bit field constants for PAD_CFG_DW1 register
+const (
+	PadTolShift uint8  = 25
+	PadTolMask  uint32 = 0x1 << PadTolShift
+
+	IOStandbyStateShift uint8  = 14
+	IOStandbyStateMask  uint32 = 0xF << IOStandbyStateShift
+
+	TermShift uint8  = 10
+	TermMask  uint32 = 0xF << TermShift
+
+	IOStandbyTerminationShift uint8  = 8
+	IOStandbyTerminationMask  uint32 = 0x3 << IOStandbyTerminationShift
+
+	InterruptSelectMask uint32 = 0xFF
+)
+
+// GetPadTol
+func (reg *Register) GetPadTol() uint8 {
+	return reg.getFieldVal(PadTolMask, PadTolShift)
+}
+
 // getIOStandbyState - return IO Standby State (IOSSTATE)
 // 0 = Tx enabled driving last value driven, Rx enabled
 // 1 = Tx enabled driving 0, Rx disabled and Rx driving 0 back to its controller internally
@@ -250,5 +258,5 @@ func (reg *Register) GetTermination() uint8 {
 
 // getInterruptSelect - returns Interrupt Line number from the GPIO controller
 func (reg *Register) GetInterruptSelect() uint8 {
-	return reg.getFieldVal(InterruptSelectShift, 0)
+	return reg.getFieldVal(InterruptSelectMask, 0)
 }

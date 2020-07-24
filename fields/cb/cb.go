@@ -125,6 +125,11 @@ func (FieldMacros) DecodeDW1() {
 	dw1 := macro.Register(common.PAD_CFG_DW1)
 	generate(
 		&field {
+			name   : "PAD_CFG1_TOL_1V8",
+			unhide : dw1.GetPadTol() != 0,
+		},
+
+		&field {
 			prefix : "PAD_PULL",
 			unhide : dw1.GetTermination() != 0,
 			configurator : func() { macro.Pull() },

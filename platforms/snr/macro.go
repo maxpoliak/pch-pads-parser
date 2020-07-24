@@ -10,7 +10,7 @@ import "../../fields"
 
 const (
 	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe
-	PAD_CFG_DW1_RO_FIELDS = 0xffffc3ff
+	PAD_CFG_DW1_RO_FIELDS = 0xfdffc3ff
 )
 
 const (
@@ -233,7 +233,11 @@ func (PlatformSpecific) GpoMacroAdd() {
 func (PlatformSpecific) NativeFunctionMacroAdd() {
 	macro := common.GetMacro()
 	// e.g. PAD_CFG_NF(GPP_D23, NONE, DEEP, NF1)
-	macro.Set("PAD_CFG_NF").Add("(").Id().Pull().Rstsrc().Padfn().Add("),")
+	macro.Set("PAD_CFG_NF")
+	if macro.Register(PAD_CFG_DW1).GetPadTol() != 0 {
+		macro.Add("_1V8")
+	}
+	macro.Add("(").Id().Pull().Rstsrc().Padfn().Add("),")
 }
 
 // Adds PAD_NC macro
