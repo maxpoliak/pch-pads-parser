@@ -113,6 +113,11 @@ func (FieldMacros) DecodeDW0() {
 		},
 
 		&field {
+			name   : "(1 << 1)",
+			unhide : dw0.GetGPIORXState() != 0,
+		},
+
+		&field {
 			name   : "1",
 			unhide : dw0.GetGPIOTXState() != 0,
 		},

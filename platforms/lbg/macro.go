@@ -9,7 +9,7 @@ import "../common"
 import "../snr"
 
 const (
-	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfe
+	PAD_CFG_DW0_RO_FIELDS = (0x1 << 27) | (0x1 << 24) | (0x3 << 21) | (0xf << 16) | 0xfc
 	PAD_CFG_DW1_RO_FIELDS = 0xfdffc3ff
 )
 
