@@ -1,35 +1,16 @@
 Pads Configuration Parser for Intel PCH (intelp2m)
 ==================================================
 
-This utility allows to convert the configuration DW0/1 registers value
-from [inteltool] dump to [coreboot] macros.
+This utility allows to convert the pad configuration PAD_CFG_DW0 and PAD_CFG_DW1
+registers value from [inteltool] dump to [coreboot] macros.
 
 ```bash
-(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.4
+(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.5
 (shell)$ make
 (shell)$ ./intelp2m -h
 (shell)$ ./intelp2m -file /path/to/inteltool.log
 ```
-
-To generate the gpio.c with raw DW0/1 register values you need to use
-the -fld=raw option:
-
-```bash
-  (shell)$ ./intelp2m -fld raw -file /path/to/inteltool.log
-```
-
-```c
-/* GPP_A10 - CLKOUT_LPC1 DW0: 0x44000500, DW1: 0x00000000 */
-/* PAD_CFG_NF(GPP_A10, NONE, DEEP, NF1), */
-/* DW0 : 0x04000100 - IGNORED */
-_PAD_CFG_STRUCT(GPP_A10, 0x44000500, 0x00000000),
-```
-
-Test:
-```bash
-(shell)$ ./intelp2m -file examples/inteltool-asrock-h110m-dvs.log
-(shell)$ ./intelp2m -file examples/inteltool-asrock-h110m-stx.log
-```
+### Platforms
 
 It is possible to use templates for parsing files of excellent inteltool.log.
 To specify such a pattern, use the option -t <template number>. For example,
@@ -79,18 +60,50 @@ Use the -fld=cb option to only generate a sequence of bit fields in a new macro:
 _PAD_CFG_STRUCT(GPIO_37, PAD_FUNC(NF1) | PAD_TRIG(OFF) | PAD_TRIG(OFF), PAD_PULL(DN_20K)), /* LPSS_UART0_TXD */
 ```
 
+### Raw DW0, DW1 register value
+
+To generate the gpio.c with raw PAD_CFG_DW0 and PAD_CFG_DW1 register values you need
+to use the -fld=raw option:
+
+```bash
+  (shell)$ ./intelp2m -fld raw -file /path/to/inteltool.log
+```
+
+```c
+_PAD_CFG_STRUCT(GPP_A10, 0x44000500, 0x00000000),	/* CLKOUT_LPC1 */
+```
+
+```bash
+  (shell)$ ./intelp2m -iiii -fld raw -file /path/to/inteltool.log
+```
+
+```c
+/* GPP_A10 - CLKOUT_LPC1 DW0: 0x44000500, DW1: 0x00000000 */
+/* PAD_CFG_NF(GPP_A10, NONE, DEEP, NF1), */
+/* DW0 : 0x04000100 - IGNORED */
+_PAD_CFG_STRUCT(GPP_A10, 0x44000500, 0x00000000),
+```
+
 ### FSP-style macro
 
 The utility allows to generate macros that include fsp/edk2-palforms/slimbootloader-style bitfields:
+
+```bash
+(shell)$./intelp2m -fld fsp -p lbg -file ../crb-inteltool.log
+```
 
 ```c
 { GPIO_SKL_H_GPP_A12, { GpioPadModeGpio, GpioHostOwnAcpi, GpioDirInInvOut, GpioOutLow, GpioIntSci | GpioIntLvlEdgDis, GpioResetNormal, GpioTermNone,  GpioPadConfigLock },	/* GPIO */
 ```
 
-To do this, use the -fsp option on the command line:
-
 ```bash
-(shell)$./intelp2m -fsp -p apl -file ../apollo-inteltool.log
+(shell)$./intelp2m -iiii -fld fsp -p lbg -file ../crb-inteltool.log
+```
+
+```c
+/* GPP_A12 - GPIO DW0: 0x80880102, DW1: 0x00000000 */
+/* PAD_CFG_GPI_SCI(GPP_A12, NONE, PLTRST, LEVEL, INVERT), */
+{ GPIO_SKL_H_GPP_A12, { GpioPadModeGpio, GpioHostOwnAcpi, GpioDirInInvOut, GpioOutLow, GpioIntSci | GpioIntLvlEdgDis, GpioResetNormal, GpioTermNone,  GpioPadConfigLock },
 ```
 
 ### Macro Check
@@ -183,7 +196,13 @@ PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
 /* GPIO_39 - LPSS_UART0_TXD */
 PAD_CFG_NF_IOSSTATE_IOSTERM(GPIO_39, UP_20K, DEEP, NF1, TxLASTRxE, DISPUPD),
 ```
+### Test
 
+```bash
+(shell)$git clone https://github.com/maxpoliak/inteltool-examples
+(shell)$./intelp2m -file inteltool-examples/inteltool-asrock-h110m-dvs.log
+(shell)$./intelp2m -file inteltool-examples/inteltool-asrock-h110m-stx.log
+```
 
 ### Supports Chipsets
 
