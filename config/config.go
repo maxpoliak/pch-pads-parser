@@ -85,16 +85,16 @@ func InfoLevelGet() uint8 {
 	return infolevel
 }
 
-var fldstyle uint8 = CorebootFlds
+var fldstyle uint8 = CbFlds
 const (
-	NoFlds       uint8  = 0
-	CorebootFlds uint8  = 1
-	FspFlds      uint8  = 2
-	RawFlds      uint8  = 3
+	NoFlds  uint8  = 0
+	CbFlds  uint8  = 1 // coreboot style
+	FspFlds uint8  = 2 // FSP/edk2 style
+	RawFlds uint8  = 3 // raw DW0/1 values
 )
 var fldstylemap = map[string]uint8{
 	"none" : NoFlds,
-	"cb"   : CorebootFlds,
+	"cb"   : CbFlds,
 	"fsp"  : FspFlds,
 	"raw"  : RawFlds}
 func FldStyleSet(name string) int {
@@ -110,8 +110,8 @@ func FldStyleGet() uint8 {
 func IsFieldsMacroUsed() bool {
 	return FldStyleGet() != NoFlds
 }
-func IsCorebootStyleMacro() bool {
-	return FldStyleGet() == CorebootFlds
+func IsCbStyleMacro() bool {
+	return FldStyleGet() == CbFlds
 }
 func IsFspStyleMacro() bool {
 	return FldStyleGet() == FspFlds
