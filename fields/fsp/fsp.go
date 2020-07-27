@@ -100,10 +100,10 @@ func (FieldMacros) DecodeDW0() {
 				if mask == 0 {
 					macro.Add("GpioIntDis | ")
 					return
-				}							
+				}
 				for bit, fieldmacro := range configmap {
 					if mask & bit != 0 {
-						macro.Add(fieldmacro).Add("| ")
+						macro.Add(fieldmacro).Add(" | ")
 					}
 				}
 			},

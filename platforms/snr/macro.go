@@ -21,7 +21,7 @@ const (
 
 type PlatformSpecific struct {}
 
-// RemmapRstSrc - remmap Pad Reset Source Config 
+// RemmapRstSrc - remmap Pad Reset Source Config
 func (PlatformSpecific) RemmapRstSrc() {
 	macro := common.GetMacro()
 	if config.TemplateGet() != config.TempInteltool {
