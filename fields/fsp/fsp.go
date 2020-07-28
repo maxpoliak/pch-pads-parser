@@ -167,5 +167,5 @@ func (bitfields FieldMacros) GenerateString() {
 	macro.Add("{ GPIO_SKL_H_").Id().Add(", { ")
 	bitfields.DecodeDW0()
 	bitfields.DecodeDW1()
-	macro.Add(" GpioPadConfigLock },") // TODO: configure GpioPadConfigLock
+	macro.Add(" GpioPadConfigLock } },") // TODO: configure GpioPadConfigLock
 }
