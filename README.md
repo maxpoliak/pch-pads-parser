@@ -4,12 +4,19 @@ Pads Configuration Parser for Intel PCH (intelp2m)
 This utility allows to convert the pad configuration PAD_CFG_DW0 and PAD_CFG_DW1
 registers value from [inteltool] dump to [coreboot] macros.
 
+New repository
+==============
+
+The project has been moved to the coreboot repository!
+
 ```bash
-(shell)$ git clone https://github.com/maxpoliak/pch-pads-parser.git -b stable_2.5
+(shell)$ git clone https://review.coreboot.org/coreboot
+(shell)$ cd coreboot/util/intelp2m
 (shell)$ make
 (shell)$ ./intelp2m -h
 (shell)$ ./intelp2m -file /path/to/inteltool.log
 ```
+
 ### Platforms
 
 It is possible to use templates for parsing files of excellent inteltool.log.
