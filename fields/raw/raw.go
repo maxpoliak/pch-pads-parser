@@ -13,7 +13,7 @@ func (FieldMacros) DecodeDW0() {
 
 func (FieldMacros) DecodeDW1() {
 	macro := common.GetMacro()
-	// Do not decode, print as is.	
+	// Do not decode, print as is.
 	macro.Add(fmt.Sprintf("0x%0.8x", macro.Register(common.PAD_CFG_DW1).ValueGet()))
 }
 

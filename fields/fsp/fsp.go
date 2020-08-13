@@ -100,10 +100,10 @@ func (FieldMacros) DecodeDW0() {
 				if mask == 0 {
 					macro.Add("GpioIntDis | ")
 					return
-				}							
+				}
 				for bit, fieldmacro := range configmap {
 					if mask & bit != 0 {
-						macro.Add(fieldmacro).Add("| ")
+						macro.Add(fieldmacro).Add(" | ")
 					}
 				}
 			},
@@ -167,5 +167,5 @@ func (bitfields FieldMacros) GenerateString() {
 	macro.Add("{ GPIO_SKL_H_").Id().Add(", { ")
 	bitfields.DecodeDW0()
 	bitfields.DecodeDW1()
-	macro.Add(" GpioPadConfigLock },") // TODO: configure GpioPadConfigLock
+	macro.Add(" GpioPadConfigLock } },") // TODO: configure GpioPadConfigLock
 }
